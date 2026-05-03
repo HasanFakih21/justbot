@@ -12,7 +12,7 @@ pub enum Square {
 pub enum Piece {
     WhitePawns,
     WhiteKnights,
-    WhiteBishopsu,
+    WhiteBishops,
     WhiteRooks,
     WhiteQueens,
     WhiteKing,
@@ -67,7 +67,7 @@ impl BitBoard {
         match piece {
             Piece::WhitePawns => self.white_pawns |= b,
             Piece::WhiteKnights => self.white_knights |= b,
-            Piece::WhiteBishopsu => self.white_bishops |= b,
+            Piece::WhiteBishops => self.white_bishops |= b,
             Piece::WhiteRooks => self.white_rooks |= b,
             Piece::WhiteQueens => self.white_queens |= b,
             Piece::WhiteKing => self.white_king |= b,
@@ -78,6 +78,25 @@ impl BitBoard {
             Piece::BlackRooks => self.black_rooks |= b,
             Piece::BlackQueens => self.black_queens |= b,
             Piece::BlackKing => self.black_king |= b,
+        }
+    }
+
+    pub fn clear_bit(&mut self, piece: Piece, position: Square) {
+        let b = 1u64 << position as u64;
+        match piece {
+            Piece::WhitePawns => self.white_pawns ^= b,
+            Piece::WhiteKnights => self.white_knights ^= b,
+            Piece::WhiteBishops => self.white_bishops ^= b,
+            Piece::WhiteRooks => self.white_rooks ^= b,
+            Piece::WhiteQueens => self.white_queens ^= b,
+            Piece::WhiteKing => self.white_king ^= b,
+
+            Piece::BlackPawns => self.black_pawns ^= b,
+            Piece::BlackKnights => self.black_knights ^= b,
+            Piece::BlackBishops => self.black_bishops ^= b,
+            Piece::BlackRooks => self.black_rooks ^= b,
+            Piece::BlackQueens => self.black_queens ^= b,
+            Piece::BlackKing => self.black_king ^= b,
         }
     }
 }
