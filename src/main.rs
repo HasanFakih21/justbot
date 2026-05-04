@@ -41,9 +41,11 @@ async fn main() {
 
         if is_mouse_button_down(MouseButton::Left) {
             let mouse_pos = mouse_position();
-            let file = (mouse_pos.0 / 96.0).floor() as usize;
-            let rank = 7 - (mouse_pos.1 / 96.0).floor() as usize;
+            let (file, rank) = ((mouse_pos.0 / 96.0).floor() as usize, 7 - (mouse_pos.1 / 96.0).floor() as usize);
             let square_index = rank * 8 + file;
+
+            let piece_present = bit_board.get_piece_at_square(Side::White, board::Square::try_from(square_index).unwrap());
+            println!("Clicked on square: {:?}, Piece present: {:?}", board::Square::try_from(square_index).unwrap(), piece_present);
         }
 
         next_frame().await

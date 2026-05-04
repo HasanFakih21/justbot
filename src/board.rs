@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -10,7 +10,18 @@ pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8
 }
 
-#[derive(Copy, Clone)]
+impl TryFrom<usize> for Square {
+    type Error = String;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if value <= 63 {
+            Ok(unsafe { std::mem::transmute::<u8, Square>(value as u8) })
+        } else {
+            Err("Invalid value for Square".to_string())
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum Piece {
     Pawns,
     Knights,
@@ -20,7 +31,18 @@ pub enum Piece {
     King,
 }
 
-#[derive(Copy, Clone)]
+impl TryFrom<usize> for Piece {
+    type Error = String;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if value <= 5 {
+            Ok(unsafe { std::mem::transmute::<u8, Piece>(value as u8) })
+        } else {
+            Err("Invalid value for Piece".to_string())
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum Side {
     White,
     Black,
@@ -36,8 +58,19 @@ impl BitBoard {
     pub fn new() -> Self {
         BitBoard {
             bit_board_pieces: [
-                [0x0000_0000_0000_FF00, 0x0000_0000_0000_0042, 0x0000_0000_0000_0024, 0x0000_0000_0000_0081, 0x0000_0000_0000_0008, 0x0000_0000_0000_0010],
-                [0x00FF_0000_0000_0000, 0x4200_0000_0000_0000, 0x2400_0000_0000_0000, 0x8100_0000_0000_0000, 0x0800_0000_0000_0000, 0x1000_0000_0000_0000]
+                [0x0000_0000_0000_FF00,
+                 0x0000_0000_0000_0042,
+                 0x0000_0000_0000_0024,
+                 0x0000_0000_0000_0081,
+                 0x0000_0000_0000_0008,
+                 0x0000_0000_0000_0010],
+
+                [0x00FF_0000_0000_0000,
+                 0x4200_0000_0000_0000,
+                 0x2400_0000_0000_0000,
+                 0x8100_0000_0000_0000,
+                 0x0800_0000_0000_0000,
+                 0x1000_0000_0000_0000]
             ],
         }
     }
@@ -58,6 +91,16 @@ impl BitBoard {
     pub fn get_bit(&self, side: Side, piece: Piece, position: Square) -> bool {
         let b = 1u64 << position as u64;
         (self.bit_board_pieces[side as usize][piece as usize] & b) != 0
+    }
+
+    pub fn get_piece_at_square(&self, side: Side, position: Square) -> Option<Piece> {
+        self.bit_board_pieces[side as usize]
+            .iter()
+            .enumerate()
+            .find(|e| {
+                self.get_bit(side, Piece::try_from(e.0).unwrap(), position)
+            })
+            .map(|e| Piece::try_from(e.0).unwrap())
     }
 }
 
