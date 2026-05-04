@@ -1,4 +1,5 @@
 #[derive(Copy, Clone, Debug)]
+#[repr(u8)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -22,6 +23,7 @@ impl TryFrom<usize> for Square {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[repr(u8)]
 pub enum Piece {
     Pawns,
     Knights,
@@ -94,13 +96,12 @@ impl BitBoard {
     }
 
     pub fn get_piece_at_square(&self, side: Side, position: Square) -> Option<Piece> {
-        self.bit_board_pieces[side as usize]
-            .iter()
-            .enumerate()
-            .find(|e| {
-                self.get_bit(side, Piece::try_from(e.0).unwrap(), position)
-            })
-            .map(|e| Piece::try_from(e.0).unwrap())
+        for piece_index in 0..6 {
+            if self.get_bit(side, Piece::try_from(piece_index).unwrap(), position) {
+                return Some(Piece::try_from(piece_index).unwrap());
+            }
+        }
+        None
     }
 }
 

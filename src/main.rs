@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::board::{BitBoard, Side, Piece, print_board};
+use crate::board::{BitBoard, Side, Piece, Square, print_board};
 
 pub mod board;
 
@@ -9,12 +9,15 @@ async fn main() {
     let piece_textures = generate_piece_texture_arrays().await;
     let mut bit_board = BitBoard::new();
 
-    bit_board.set_bit(Side::Black, Piece::Pawns, board::Square::D5);
-    bit_board.clear_bit(Side::Black, Piece::Pawns, board::Square::D7);
+    bit_board.set_bit(Side::Black, Piece::Pawns, Square::D5);
+    bit_board.clear_bit(Side::Black, Piece::Pawns, Square::D7);
     print_board(&bit_board.bit_board_pieces[Side::White as usize][Piece::Pawns as usize]);
+
+    let mut selected_piece: Option<(Side, Piece, Square)> = None;
 
     loop {
         request_new_screen_size(768.0, 768.0);
+        let mouse_pos = mouse_position();
 
         draw_texture_ex(
             &board_texture,
@@ -39,17 +42,35 @@ async fn main() {
                     });
             });
 
-        if is_mouse_button_down(MouseButton::Left) {
-            let mouse_pos = mouse_position();
-            let (file, rank) = ((mouse_pos.0 / 96.0).floor() as usize, 7 - (mouse_pos.1 / 96.0).floor() as usize);
-            let square_index = rank * 8 + file;
+        if is_mouse_button_pressed(MouseButton::Left) && selected_piece.is_none() {
+            let square = get_square_from_mouse_position(mouse_pos);
 
-            let piece_present = bit_board.get_piece_at_square(Side::White, board::Square::try_from(square_index).unwrap());
-            println!("Clicked on square: {:?}, Piece present: {:?}", board::Square::try_from(square_index).unwrap(), piece_present);
+            let piece_present = bit_board.get_piece_at_square(Side::White, square);
+
+            if let Some(piece) = piece_present {
+                selected_piece = Some((Side::White, piece, square));
+                bit_board.clear_bit(Side::White, piece, square);
+            }
+        }
+
+        if is_mouse_button_down(MouseButton::Left) && let Some((side, piece, _)) = selected_piece {
+            draw_piece(mouse_pos.0 - 48.0, mouse_pos.1 - 48.0, &piece_textures[side as usize][piece as usize]);
+        } else if let Some((side, piece, _)) = selected_piece {
+            let new_square = get_square_from_mouse_position(mouse_pos);
+
+            bit_board.set_bit(side, piece, new_square);
+            selected_piece = None;
+
         }
 
         next_frame().await
     }
+}
+
+fn get_square_from_mouse_position(mouse_pos: (f32, f32)) -> Square {
+    let file = (mouse_pos.0 / 96.0).floor() as usize;
+    let rank = 7 - (mouse_pos.1 / 96.0).floor() as usize;
+    Square::try_from(rank * 8 + file).unwrap()
 }
 
 
