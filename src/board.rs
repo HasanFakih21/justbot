@@ -245,6 +245,37 @@ impl BitBoard {
        
         attacks
     }
+
+    pub fn mask_rook_attacks(&self, square: Square) -> u64 {
+        let mut attacks = 0u64;
+        let (rank, file) = to_rank_and_file(square);
+        
+        let mut r = rank;
+        while r > 1 {
+            r -= 1;
+            attacks |= 1u64 << to_square(r, file).unwrap() as u64;
+        }
+
+        let mut r = rank;
+        while r < 6 {
+            r += 1;
+            attacks |= 1u64 << to_square(r, file).unwrap() as u64;
+        }
+
+        let mut f = file;
+        while f < 6 {
+            f += 1;
+            attacks |= 1u64 << to_square(rank, f).unwrap() as u64;
+        }
+
+        let mut f = file;
+        while f > 1 {
+            f -= 1;
+            attacks |= 1u64 << to_square(rank, f).unwrap() as u64;
+        }      
+
+       attacks  
+    }
 }
 
 pub fn to_rank_and_file(square: Square) -> (usize, usize) {

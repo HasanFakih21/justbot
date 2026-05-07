@@ -15,7 +15,7 @@ async fn main() {
     let mut selected_piece: Option<(Side, Piece, Square)> = None;
     let mut turn_to_play = Side::White;
 
-    print_board(&bit_board.mask_bishop_attacks(Square::F4));
+    print_board(&bit_board.mask_rook_attacks(Square::E7));
 
     loop {
         request_new_screen_size(768.0, 768.0);
