@@ -70,28 +70,28 @@ pub fn mask_bishop_attacks(square: Square) -> u64 {
     while r < 6 && f < 6 {
         r += 1;
         f += 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
     }
 
     let (mut r, mut f) = (rank, file);
     while r > 1 && f < 6 {
         r -= 1;
         f += 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
     }
 
     let (mut r, mut f) = (rank, file);
     while r < 6 && f > 1 {
         r += 1;
         f -= 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
     }
 
     let (mut r, mut f) = (rank, file);
     while r > 1 && f > 1 {
         r -= 1;
         f -= 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
     }
     
     attacks
@@ -104,28 +104,63 @@ pub fn mask_rook_attacks(square: Square) -> u64 {
     let mut r = rank;
     while r > 1 {
         r -= 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, file).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, file) as u64;
     }
 
     let mut r = rank;
     while r < 6 {
         r += 1;
-        attacks |= 1u64 << Square::from_rank_and_file(r, file).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(r, file) as u64;
     }
 
     let mut f = file;
     while f < 6 {
         f += 1;
-        attacks |= 1u64 << Square::from_rank_and_file(rank, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(rank, f) as u64;
     }
 
     let mut f = file;
     while f > 1 {
         f -= 1;
-        attacks |= 1u64 << Square::from_rank_and_file(rank, f).unwrap() as u64;
+        attacks |= 1u64 << Square::from_rank_and_file(rank, f) as u64;
     }      
 
     attacks  
+}
+
+pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
+    let mut attacks = 0u64;
+    let (rank, file) = square.to_rank_and_file();
+
+    let (mut r, mut f) = (rank, file);
+    while r < 6 && f < 6 && Square::from_rank_and_file(r, f) as u64 & block_board == 0 {
+        r += 1;
+        f += 1;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
+    }
+
+    let (mut r, mut f) = (rank, file);
+    while r > 1 && f < 6 {
+        r -= 1;
+        f += 1;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
+    }
+
+    let (mut r, mut f) = (rank, file);
+    while r < 6 && f > 1 {
+        r += 1;
+        f -= 1;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
+    }
+
+    let (mut r, mut f) = (rank, file);
+    while r > 1 && f > 1 {
+        r -= 1;
+        f -= 1;
+        attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
+    }
+    
+    attacks
 }
 
 #[cfg(test)]
@@ -182,5 +217,10 @@ mod tests {
             let b = mask_rook_attacks(Square::try_from(i).unwrap());
             print_board(&b);
         }
+    }
+
+    #[test]
+    fn test_blocked_bishop_attacks() {
+
     }
 }

@@ -30,7 +30,12 @@ impl Square {
         (*self as usize / 8, *self as usize % 8)
     }
 
-    pub fn from_rank_and_file(rank: usize, file: usize) -> Result<Square, InvalidSquare> {
-        Square::try_from((rank * 8) + file)
+    pub fn from_rank_and_file(rank: usize, file: usize) -> Square {
+        match Square::try_from((rank * 8) + file) {
+            Ok(square) => square,
+            Err(e) => {
+                panic!("Invalid Square {:?} !!!", e);
+            }
+        }
     }
 }
