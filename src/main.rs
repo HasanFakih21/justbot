@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::board::{BitBoard, Side, Piece, Square};
+use crate::board::{Board, Side, Piece, Square};
 
 pub mod board;
 pub mod attacks;
@@ -11,7 +11,7 @@ async fn main() {
     let piece_textures = generate_piece_texture_arrays().await;
 
     //Initialilze BitBoard class
-    let mut bit_board = BitBoard::new();
+    let mut board = Board::new();
 
     let mut selected_piece: Option<(Side, Piece, Square)> = None;
     let mut turn_to_play = Side::White;
@@ -39,18 +39,18 @@ async fn main() {
                     .iter()
                     .enumerate()
                     .for_each(|(piece_index, texture)| {
-                        draw_board(&bit_board.bit_board_pieces[side_index][piece_index], texture);
+                        draw_board(&board.board_pieces[side_index][piece_index], texture);
                     });
             });
 
         if is_mouse_button_pressed(MouseButton::Left) && selected_piece.is_none() {
             let square = get_square_from_mouse_position(mouse_pos);
 
-            let piece_present = bit_board.get_piece_at_square(turn_to_play, square);
+            let piece_present = board.get_piece_at_square(turn_to_play, square);
 
             if let Some(piece) = piece_present {
                 selected_piece = Some((turn_to_play, piece, square));
-                bit_board.clear_bit(turn_to_play, piece, square);
+                board.clear_piece_bit(turn_to_play, piece, square);
             }
         }
 
@@ -59,7 +59,7 @@ async fn main() {
         } else if let Some((side, piece, original_square)) = selected_piece {
             let new_square = get_square_from_mouse_position(mouse_pos);
 
-            bit_board.set_bit(side, piece, new_square);
+            board.set_piece_bit(side, piece, new_square);
             if new_square != original_square {turn_to_play = turn_to_play.other();}
             selected_piece = None;
         }

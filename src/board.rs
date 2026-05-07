@@ -9,24 +9,24 @@ pub use sides::*;
 
 pub use crate::attacks::*;
 
-pub struct BitBoard {
-    pub bit_board_pieces: [[u64; 6]; 2],
+pub struct Board {
+    pub board_pieces: [[u64; 6]; 2],
     pub pawn_attacks: [[u64; 64]; 2],
     pub knight_attacks: [u64; 64],
     pub king_attacks: [u64; 64],
 }
 
-impl Default for BitBoard {
+impl Default for Board {
     fn default() -> Self {
         Self::new()
     }
 }
 
 //Little-Endian Rank-File Mapping
-impl BitBoard {
+impl Board {
     pub fn new() -> Self {
-        let mut b = BitBoard {
-            bit_board_pieces: [
+        let mut b = Board {
+            board_pieces: [
                 [0x0000_0000_0000_FF00,
                  0x0000_0000_0000_0042,
                  0x0000_0000_0000_0024,
@@ -50,21 +50,17 @@ impl BitBoard {
         b
     }
 
-    pub fn set_bit(&mut self, side: Side, piece: Piece, position: Square) {
-        let b = 1u64 << position as u64;
-        self.bit_board_pieces[side as usize][piece as usize] |= b;
+    pub fn set_piece_bit(&mut self, side: Side, piece: Piece, position: Square) {
+        set_bit(&mut self.board_pieces[side as usize][piece as usize], position);
     }
 
-    pub fn clear_bit(&mut self, side: Side, piece: Piece, position: Square) {
-        let b = 1u64 << position as u64;
-        if self.get_bit(side, piece, position) {
-            self.bit_board_pieces[side as usize][piece as usize] ^= b;
-        }
+    pub fn clear_piece_bit(&mut self, side: Side, piece: Piece, position: Square) {
+        clear_bit(&mut self.board_pieces[side as usize][piece as usize], position);
     }
 
     pub fn get_bit(&self, side: Side, piece: Piece, position: Square) -> bool {
         let b = 1u64 << position as u64;
-        (self.bit_board_pieces[side as usize][piece as usize] & b) != 0
+        (self.board_pieces[side as usize][piece as usize] & b) != 0
     }
 
     pub fn get_piece_at_square(&self, side: Side, position: Square) -> Option<Piece> {
@@ -103,4 +99,12 @@ pub fn print_board(bit_board: &u64) {
     }
     println!("\n    A  B  C  D  E  F  G  H");
     println!("\nBitboard: {bit_board}");
+}
+
+pub fn set_bit(bit_board: &mut u64, square: Square) {
+    *bit_board |= 1u64 << square as u64;
+}
+
+pub fn clear_bit(bit_board: &mut u64, square: Square) {
+    *bit_board &= !(1u64 << square as u64);
 }
