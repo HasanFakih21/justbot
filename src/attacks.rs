@@ -1,8 +1,6 @@
 use crate::{Side, Square};
 use crate::board::constants::*;
 
-pub mod occupancy;
-
 pub fn mask_pawn_attacks(side: Side, square: Square) -> u64 {
     let current = 1u64 << square as u64;
     let mut top_left = 0u64; 

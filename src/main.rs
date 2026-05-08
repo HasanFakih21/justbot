@@ -3,6 +3,7 @@ use crate::board::{Board, Side, Piece, Square};
 
 pub mod board;
 pub mod attacks;
+pub mod occupancy;
 
 #[macroquad::main("MyGame")]
 async fn main() {
