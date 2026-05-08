@@ -180,6 +180,7 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
     attacks
 }
 
+#[allow(dead_code)]
 fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
@@ -252,7 +253,7 @@ mod tests {
     #[test]
     fn test_knight_attack_mask() {
         for i in 0..64 {
-            let b = mask_knight_attacks(Square::try_from(i).unwrap());
+            let b = mask_knight_attacks(Square::from(i));
             print_board(&b);
         }
     }
@@ -260,7 +261,7 @@ mod tests {
     #[test]
     fn test_king_attack_mask() {
         for i in 0..64 {
-            let b = mask_king_attacks(Square::try_from(i).unwrap());
+            let b = mask_king_attacks(Square::from(i));
             print_board(&b);
         }
     }
@@ -268,7 +269,7 @@ mod tests {
     #[test]
     fn test_bishop_attack_mask() {
         for i in 0..64 {
-            let b = mask_bishop_attacks(Square::try_from(i).unwrap());
+            let b = mask_bishop_attacks(Square::from(i));
             print_board(&b);
         }
     }
@@ -276,7 +277,7 @@ mod tests {
     #[test]
     fn test_rook_attack_mask() {
         for i in 0..64 {
-            let b = mask_rook_attacks(Square::try_from(i).unwrap());
+            let b = mask_rook_attacks(Square::from(i));
             print_board(&b);
         }
     }

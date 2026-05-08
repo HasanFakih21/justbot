@@ -26,16 +26,16 @@ impl TryFrom<usize> for Square {
 }
 
 impl Square {
-    pub fn to_rank_and_file(&self) -> (usize, usize) {
+    pub const fn from(value: usize) -> Self {
+        debug_assert!(value < 64);
+        unsafe { std::mem::transmute(value as u8) }
+    }
+
+    pub const fn to_rank_and_file(&self) -> (usize, usize) {
         (*self as usize / 8, *self as usize % 8)
     }
 
-    pub fn from_rank_and_file(rank: usize, file: usize) -> Square {
-        match Square::try_from((rank * 8) + file) {
-            Ok(square) => square,
-            Err(e) => {
-                panic!("Invalid Square {:?} !!!", e);
-            }
-        }
+    pub const fn from_rank_and_file(rank: usize, file: usize) -> Square {
+        Square::from((rank * 8) + file)
     }
 }

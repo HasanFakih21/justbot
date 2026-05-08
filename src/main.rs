@@ -71,7 +71,7 @@ async fn main() {
 fn get_square_from_mouse_position(mouse_pos: (f32, f32)) -> Square {
     let file = (mouse_pos.0 / 96.0).floor() as usize;
     let rank = 7 - (mouse_pos.1 / 96.0).floor() as usize;
-    Square::try_from(rank * 8 + file).unwrap()
+    Square::from_rank_and_file(rank, file)
 }
 
 

@@ -74,7 +74,7 @@ impl Board {
 
     pub fn init_leaping_attacks(&mut self) {
         for i in 0..64 {
-            let square = Square::try_from(i).unwrap();
+            let square = Square::from(i);
             self.pawn_attacks[Side::White as usize][i] = mask_pawn_attacks(Side::White, square);
             self.pawn_attacks[Side::Black as usize][i] = mask_pawn_attacks(Side::Black, square);
             self.knight_attacks[i] = mask_knight_attacks(square);
@@ -101,10 +101,37 @@ pub fn print_board(bit_board: &u64) {
     println!("\nBitboard: {bit_board}");
 }
 
-pub fn set_bit(bit_board: &mut u64, square: Square) {
+pub const fn set_bit(bit_board: &mut u64, square: Square) {
     *bit_board |= 1u64 << square as u64;
 }
 
-pub fn clear_bit(bit_board: &mut u64, square: Square) {
+pub const fn clear_bit(bit_board: &mut u64, square: Square) {
     *bit_board &= !(1u64 << square as u64);
+}
+
+pub const fn count_bits(bit_board: &u64) -> usize {
+    bit_board.count_ones() as usize
+}
+
+pub const fn least_sig_bit(bit_board: &u64) -> Square {
+    Square::from(bit_board.trailing_zeros() as usize)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_bits() {
+        let mut bb = 0u64;
+        set_bit(&mut bb, Square::A1);
+
+        assert_eq!(count_bits(&bb), 1);
+
+        set_bit(&mut bb, Square::A3);
+        set_bit(&mut bb, Square::A2);
+        set_bit(&mut bb, Square::A1);
+
+        assert_eq!(count_bits(&bb), 3);
+    }
 }

@@ -22,3 +22,10 @@ impl TryFrom<usize> for Piece {
         }
     }
 }
+
+impl Piece {
+    pub const fn from(value: usize) -> Self {
+        debug_assert!(value < 6);
+        unsafe { std::mem::transmute(value as u8) }
+    }
+}
