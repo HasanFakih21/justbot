@@ -5,7 +5,6 @@ pub mod board;
 pub mod attacks;
 pub mod occupancy;
 pub mod magics;
-pub mod random;
 
 #[macroquad::main("MyGame")]
 async fn main() {
