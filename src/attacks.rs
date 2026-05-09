@@ -180,8 +180,7 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
     attacks
 }
 
-#[allow(dead_code)]
-fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
+pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
     
