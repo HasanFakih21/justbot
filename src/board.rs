@@ -2,6 +2,7 @@ pub mod squares;
 pub mod pieces;
 pub mod sides;
 pub mod constants;
+pub mod parser;
 
 use std::fmt::Display;
 
@@ -39,22 +40,8 @@ impl Default for Board {
 impl Board {
     pub fn new() -> Self {
         let mut b = Board {
-            board_pieces: [
-                [0x0000_0000_0000_FF00,
-                 0x0000_0000_0000_0042,
-                 0x0000_0000_0000_0024,
-                 0x0000_0000_0000_0081,
-                 0x0000_0000_0000_0008,
-                 0x0000_0000_0000_0010],
-
-                [0x00FF_0000_0000_0000,
-                 0x4200_0000_0000_0000,
-                 0x2400_0000_0000_0000,
-                 0x8100_0000_0000_0000,
-                 0x0800_0000_0000_0000,
-                 0x1000_0000_0000_0000]
-            ],
-            board_occupancies: [0x0000_0000_0000_FFFF, 0xFFFF_0000_0000_0000],
+            board_pieces: [[0; 6]; 2],
+            board_occupancies: [0; 2],
             side_to_move: Side::White,
             enpassant: None,
             castling_rights: CastlingRights::new(),
@@ -75,14 +62,6 @@ impl Board {
         b
     }
 
-    pub fn set_piece_bit(&mut self, side: Side, piece: Piece, square: Square) {
-        set_bit(&mut self.board_pieces[side as usize][piece as usize], square);
-    }
-
-    pub fn clear_piece_bit(&mut self, side: Side, piece: Piece, square: Square) {
-        clear_bit(&mut self.board_pieces[side as usize][piece as usize], square);
-    }
-
     pub fn get_bit(&self, side: Side, piece: Piece, square: Square) -> bool {
         let b = 1u64 << square as u64;
         (self.board_pieces[side as usize][piece as usize] & b) != 0
@@ -99,6 +78,16 @@ impl Board {
             }
         }
         None
+    }
+
+    pub fn place_piece(&mut self, side: Side, piece: Piece, square: Square) {
+        set_bit(&mut self.board_pieces[side as usize][piece as usize], square);
+        set_bit(&mut self.board_occupancies[side as usize], square);
+    }
+
+    pub fn remove_piece(&mut self, side: Side, piece: Piece, square: Square) {
+        clear_bit(&mut self.board_pieces[side as usize][piece as usize], square);
+        clear_bit(&mut self.board_occupancies[side as usize], square);
     }
 
     pub fn init_leaping_attacks(&mut self) {
@@ -162,7 +151,7 @@ impl Board {
 
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut output = String::from("\n");
+        let mut output = String::from("\n\n");
         for rank in (0..8).rev() {
             output.push_str(&format!("{}   ", 1 + rank));
             for file in 0..8 {

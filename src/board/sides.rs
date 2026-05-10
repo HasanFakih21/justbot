@@ -25,7 +25,7 @@ pub struct CastlingRights(u8);
 
 impl CastlingRights {
     pub fn new() -> Self {
-        CastlingRights(0b1111)
+        CastlingRights(0)
     }
 
     pub const fn can_king_side(&self, side: Side) -> bool {
@@ -40,6 +40,24 @@ impl CastlingRights {
             Side::White => (Castling::WhiteQueen as u8 & self.0) > 0,
             Side::Black => (Castling::BlackQueen as u8 & self.0) > 0
         }
+    }
+
+    pub fn set_king_side(&mut self, side: Side) {
+        match side {
+            Side::White => self.0 |= Castling::WhiteKing as u8,
+            Side::Black => self.0 |= Castling::BlackKing as u8,
+        }
+    }
+
+    pub fn set_queen_side(&mut self, side: Side) {
+        match side {
+            Side::White => self.0 |= Castling::WhiteQueen as u8,
+            Side::Black => self.0 |= Castling::BlackQueen as u8,
+        }
+    }
+
+    pub fn set(&mut self, mask: u8) {
+        self.0 |= mask;
     }
 }
 

@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::board::{Board, Side, Piece, Square};
+use crate::board::{Board, Piece, Side, Square, constants::STARTING_FEN};
 
 pub mod board;
 pub mod attacks;
@@ -13,7 +13,7 @@ async fn main() {
     let piece_textures = generate_piece_texture_arrays().await;
 
     //Initialilze Board class
-    let mut board = Board::new();
+    let mut board = Board::from_fen(STARTING_FEN);
 
     let mut selected_piece: Option<(Side, Piece, Square)> = None;
 
@@ -51,7 +51,7 @@ async fn main() {
 
             if let Some(piece) = piece_present && piece.1 == board.side_to_move {
                     selected_piece = Some((board.side_to_move, piece.0, square));
-                    board.clear_piece_bit(board.side_to_move, piece.0, square);
+                    board.remove_piece(board.side_to_move, piece.0, square);
                 }
         }
 
@@ -60,7 +60,7 @@ async fn main() {
         } else if let Some((side, piece, original_square)) = selected_piece {
             let new_square = get_square_from_mouse_position(mouse_pos);
 
-            board.set_piece_bit(side, piece, new_square);
+            board.place_piece(side, piece, new_square);
             if new_square != original_square {board.side_to_move = board.side_to_move.other();}
             selected_piece = None;
         }

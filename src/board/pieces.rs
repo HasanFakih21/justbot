@@ -30,6 +30,18 @@ impl Piece {
         debug_assert!(value < 6);
         unsafe { std::mem::transmute(value as u8) }
     }
+
+    pub const fn from_char(value: char) -> Result<Self, InvalidPiece> {
+        match value.to_ascii_uppercase() {
+            'P' => Ok(Piece::Pawn),
+            'N' => Ok(Piece::Knight),
+            'B' => Ok(Piece::Bishop),
+            'R' => Ok(Piece::Rook),
+            'Q' => Ok(Piece::Queen),
+            'K' => Ok(Piece::King),
+            _ => Err(InvalidPiece)
+        }
+    }
 }
 
 impl Display for Piece {
