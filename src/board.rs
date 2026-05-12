@@ -4,6 +4,7 @@ pub mod sides;
 pub mod constants;
 pub mod moves;
 pub mod parser;
+pub mod bitboard;
 
 use std::fmt::Display;
 
