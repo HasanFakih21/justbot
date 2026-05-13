@@ -25,6 +25,17 @@ impl TryFrom<usize> for Square {
     }
 }
 
+impl TryFrom<i8> for Square {
+    type Error = InvalidSquare;
+    fn try_from(value: i8) -> Result<Self, Self::Error> {
+        if (0..=63).contains(&value) {
+            Ok(unsafe { std::mem::transmute::<u8, Square>(value as u8) })
+        } else {
+            Err(InvalidSquare)
+        }
+    }
+}
+
 impl TryFrom<&str> for Square {
     type Error = InvalidSquare;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -56,5 +67,9 @@ impl Square {
 
     pub const fn from_rank_and_file(rank: usize, file: usize) -> Square {
         Square::from((rank * 8) + file)
+    }
+
+    pub fn shift(&self, offset: i8) -> Option<Square> {
+        Square::try_from((*self as i8) + offset).ok() 
     }
 }
