@@ -236,6 +236,78 @@ impl Board {
             }
         } 
     }
+
+    pub fn gen_bishop_moves(&self) {
+        let side = self.side_to_move;
+
+        let opponent_pieces = self.board_occupancies[side.other() as usize];
+        let friendly_pieces = self.board_occupancies[side as usize];
+
+        for source in self.board_pieces[side as usize][Piece::Bishop as usize].iter() {
+            let targets = self.get_bishop_attacks(source, self.get_all_occupancy()) & !friendly_pieces;
+            for target in targets.iter() {
+                if opponent_pieces.get_bit(target) {
+                    println!("Bishop capture from {:?} to {:?}", source, target);
+                } else {
+                    println!("Bishop quiet move from {:?} to {:?}", source, target);
+                }
+            }
+        } 
+    }
+
+    pub fn gen_rook_moves(&self) {
+        let side = self.side_to_move;
+
+        let opponent_pieces = self.board_occupancies[side.other() as usize];
+        let friendly_pieces = self.board_occupancies[side as usize];
+
+        for source in self.board_pieces[side as usize][Piece::Rook as usize].iter() {
+            let targets = self.get_rook_attacks(source, self.get_all_occupancy()) & !friendly_pieces;
+            for target in targets.iter() {
+                if opponent_pieces.get_bit(target) {
+                    println!("Rook capture from {:?} to {:?}", source, target);
+                } else {
+                    println!("Rook quiet move from {:?} to {:?}", source, target);
+                }
+            }
+        } 
+    }
+
+    pub fn gen_queen_moves(&self) {
+        let side = self.side_to_move;
+
+        let opponent_pieces = self.board_occupancies[side.other() as usize];
+        let friendly_pieces = self.board_occupancies[side as usize];
+
+        for source in self.board_pieces[side as usize][Piece::Queen as usize].iter() {
+            let targets = self.get_queen_attacks(source, self.get_all_occupancy()) & !friendly_pieces;
+            for target in targets.iter() {
+                if opponent_pieces.get_bit(target) {
+                    println!("Queen capture from {:?} to {:?}", source, target);
+                } else {
+                    println!("Queen quiet move from {:?} to {:?}", source, target);
+                }
+            }
+        } 
+    }
+
+    pub fn gen_king_moves(&self) {
+        let side = self.side_to_move;
+
+        let opponent_pieces = self.board_occupancies[side.other() as usize];
+        let friendly_pieces = self.board_occupancies[side as usize];
+
+        for source in self.board_pieces[side as usize][Piece::King as usize].iter() {
+            let targets = self.get_king_attacks(source) & !friendly_pieces;
+            for target in targets.iter() {
+                if opponent_pieces.get_bit(target) {
+                    println!("King capture from {:?} to {:?}", source, target);
+                } else {
+                    println!("King quiet move from {:?} to {:?}", source, target);
+                }
+            }
+        } 
+    }
 }
 
 #[cfg(test)]
@@ -333,5 +405,19 @@ mod tests {
         let board = Board::from_fen("r3k2r/p2q3p/nQp3pb/2Np1n2/8/1BP1P3/PP1B1PPP/R3K2R w KQkq - 4 20");
 
         board.gen_knight_moves();
+    }
+
+    #[test]
+    fn test_bishop_move_gen() {
+        let board = Board::from_fen("r3k2r/p2q3p/nQp3pb/2Np1n2/8/1BP1P3/PP1B1PPP/R3K2R w KQkq - 4 20");
+
+        board.gen_bishop_moves();
+    }
+
+    #[test]
+    fn test_general_move_gen() {
+        let board = Board::from_fen("r3k2r/p2q3p/nQp3pb/2Np1n2/8/1BP1P3/PP1B1PPP/R3K2R w KQkq - 4 20");
+
+        board.gen_queen_moves();
     }
 }
