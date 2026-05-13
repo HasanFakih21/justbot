@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-use crate::board::{Board, Piece, Side, Square, constants::{NORTH, RANK_4, RANK_5, SOUTH}, shift};
+use crate::board::{Board, Piece, Side, Square, bitboard::BitBoard, constants::{NORTH, RANK_4, RANK_5, SOUTH}};
 
 #[derive(Default, Debug)]
 pub struct MoveList(Vec<Move>);
@@ -87,19 +87,19 @@ impl MoveKind {
 impl Board {
     pub fn is_attacked_at_by(&self, square: Square, side: Side) -> bool {
         let pawns = self.board_pieces[side as usize][Piece::Pawn as usize];
-        if (pawns & self.get_pawn_attacks(square, side.other())) != 0 {return true}
+        if (pawns & self.get_pawn_attacks(square, side.other())) != BitBoard(0) {return true}
 
         let knights = self.board_pieces[side as usize][Piece::Knight as usize];
-        if (knights & self.get_knight_attacks(square)) != 0 {return true}
+        if (knights & self.get_knight_attacks(square)) != BitBoard(0) {return true}
 
         let king = self.board_pieces[side as usize][Piece::King as usize];
-        if (king & self.get_king_attacks(square)) != 0 {return true}
+        if (king & self.get_king_attacks(square)) != BitBoard(0) {return true}
 
         let bishop_queens = self.board_pieces[side as usize][Piece::Bishop as usize] | self.board_pieces[side as usize][Piece::Queen as usize];
-        if (bishop_queens & self.get_bishop_attacks(square, self.get_all_occupancy())) != 0 {return true}
+        if (bishop_queens & self.get_bishop_attacks(square, self.get_all_occupancy())) != BitBoard(0) {return true}
 
         let rook_queens = self.board_pieces[side as usize][Piece::Rook as usize] | self.board_pieces[side as usize][Piece::Queen as usize];
-        if (rook_queens & self.get_rook_attacks(square, self.get_all_occupancy())) != 0 {return true}
+        if (rook_queens & self.get_rook_attacks(square, self.get_all_occupancy())) != BitBoard(0) {return true}
 
         false
     }
@@ -108,7 +108,7 @@ impl Board {
 
     }
 
-    pub fn pawns_with_pushes(&self, side: Side) -> u64 {
+    pub fn pawns_with_pushes(&self, side: Side) -> BitBoard {
         let mut empty = !self.get_all_occupancy();
         let pawns = self.board_pieces[side as usize][Piece::Pawn as usize];
         let offset = match side {
@@ -116,11 +116,11 @@ impl Board {
             Side::Black => NORTH,
         };
 
-        shift(&mut empty, offset);
+        empty.shift(offset);
         empty & pawns
     }
 
-    pub fn pawns_with_double_pushes(&self, side: Side) -> u64 {
+    pub fn pawns_with_double_pushes(&self, side: Side) -> BitBoard {
         let mut empty = !self.get_all_occupancy();
         let pawns = self.board_pieces[side as usize][Piece::Pawn as usize];
 
@@ -130,13 +130,13 @@ impl Board {
         };
 
         let mut second_rank = match side {
-            Side::White => empty & RANK_4,
-            Side::Black => empty & RANK_5,
+            Side::White => empty & BitBoard(RANK_4),
+            Side::Black => empty & BitBoard(RANK_5),
         };
 
-        shift(&mut second_rank, offset);
+        second_rank.shift(offset);
         empty &= second_rank;
-        shift(&mut empty, offset);
+        empty.shift(offset);
         empty & pawns
     }
 
@@ -147,7 +147,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::{print_board, set_bit};
+    use crate::board::BitBoard;
     use super::*;
     use Square::*;
     use Side::*;
@@ -185,18 +185,18 @@ mod tests {
         let w_bb = board.pawns_with_pushes(White);
         let b_bb = board.pawns_with_pushes(Black);
 
-        print_board(&w_bb);
-        print_board(&b_bb);
+        w_bb.print_board();
+        b_bb.print_board();
 
-        let mut w_ver = 0u64;
-        set_bit(&mut w_ver, A2);
-        set_bit(&mut w_ver, B2);
-        set_bit(&mut w_ver, G2);
-        set_bit(&mut w_ver, C2);
+        let mut w_ver = BitBoard(0);
+        w_ver.set_bit(A2);
+        w_ver.set_bit(B2);
+        w_ver.set_bit(G2);
+        w_ver.set_bit(C2);
 
-        let mut b_ver = 0u64;
-        set_bit(&mut b_ver, D7);
-        set_bit(&mut b_ver, H5);
+        let mut b_ver = BitBoard(0);
+        b_ver.set_bit(D7);
+        b_ver.set_bit(H5);
 
         assert_eq!(w_bb, w_ver);
         assert_eq!(b_bb, b_ver);
@@ -209,13 +209,13 @@ mod tests {
         let w_bb = board.pawns_with_double_pushes(White);
         let b_bb = board.pawns_with_double_pushes(Black);
 
-        let mut w_ver = 0u64;
-        set_bit(&mut w_ver, A2);
-        set_bit(&mut w_ver, B2);
-        set_bit(&mut w_ver, G2);
+        let mut w_ver = BitBoard(0);
+        w_ver.set_bit(A2);
+        w_ver.set_bit(B2);
+        w_ver.set_bit(G2);
 
-        let mut b_ver = 0u64;
-        set_bit(&mut b_ver, D7);
+        let mut b_ver = BitBoard(0);
+        b_ver.set_bit(D7);
 
         assert_eq!(w_bb, w_ver);
         assert_eq!(b_bb, b_ver);

@@ -1,7 +1,8 @@
+use crate::board::bitboard::BitBoard;
 use crate::{Side, Square};
 use crate::board::constants::*;
 
-pub fn mask_pawn_attacks(side: Side, square: Square) -> u64 {
+pub fn mask_pawn_attacks(side: Side, square: Square) -> BitBoard {
     let current = 1u64 << square as u64;
     let mut top_left = 0u64; 
     let mut top_right = 0u64;
@@ -27,10 +28,10 @@ pub fn mask_pawn_attacks(side: Side, square: Square) -> u64 {
         }
     }
 
-    top_left | top_right
+    BitBoard(top_left | top_right)
 }
 
-pub fn mask_knight_attacks(square: Square) -> u64 {
+pub fn mask_knight_attacks(square: Square) -> BitBoard {
     let current = 1u64 << square as u64;
 
     let tl1 = if (current & A_FILE) == 0 {current << 15} else {0};
@@ -45,10 +46,10 @@ pub fn mask_knight_attacks(square: Square) -> u64 {
     let br1 = if (current & (H_FILE | G_FILE)) == 0 {current >> 6} else {0};
     let br2 = if (current & H_FILE) == 0 {current >> 15} else {0};
 
-    tl1 | tl2 | bl1 | bl2 | tr1 | tr2 | br1 | br2
+    BitBoard(tl1 | tl2 | bl1 | bl2 | tr1 | tr2 | br1 | br2)
 }
 
-pub fn mask_king_attacks(square: Square) -> u64 {
+pub fn mask_king_attacks(square: Square) -> BitBoard {
     let current = 1u64 << square as u64;
     let n = current << 8;
     let nw = if current & A_FILE == 0 {current << 7} else {0};
@@ -59,10 +60,10 @@ pub fn mask_king_attacks(square: Square) -> u64 {
     let e = if current & H_FILE == 0 {current << 1} else {0};
     let ne = if current & H_FILE == 0 {current << 9} else {0};
 
-    n | nw | w | sw | s | se | e | ne
+    BitBoard(n | nw | w | sw | s | se | e | ne)
 }
 
-pub fn mask_bishop_attacks(square: Square) -> u64 {
+pub fn mask_bishop_attacks(square: Square) -> BitBoard {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
 
@@ -94,10 +95,10 @@ pub fn mask_bishop_attacks(square: Square) -> u64 {
         attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
     }
     
-    attacks
+    BitBoard(attacks)
 }
 
-pub fn mask_rook_attacks(square: Square) -> u64 {
+pub fn mask_rook_attacks(square: Square) -> BitBoard {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
     
@@ -125,10 +126,10 @@ pub fn mask_rook_attacks(square: Square) -> u64 {
         attacks |= 1u64 << Square::from_rank_and_file(rank, f) as u64;
     }      
 
-    attacks  
+    BitBoard(attacks)  
 }
 
-pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
+pub fn blocked_bishop_attacks(square: Square, block_board: BitBoard) -> BitBoard {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
 
@@ -139,7 +140,7 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
         f += 1;
 
         attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
-        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -150,7 +151,7 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
         f += 1;
 
         attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
-        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -161,7 +162,7 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
         f -= 1;
 
         attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
-        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -172,15 +173,15 @@ pub fn blocked_bishop_attacks(square: Square, block_board: u64) -> u64 {
         f -= 1;
 
         attacks |= 1u64 << Square::from_rank_and_file(r, f) as u64;
-        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, f) as u64) & block_board.0 != 0 {
             break;
         }
     }
     
-    attacks
+    BitBoard(attacks)
 }
 
-pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
+pub fn blocked_rook_attacks(square: Square, block_board: BitBoard) -> BitBoard {
     let mut attacks = 0u64;
     let (rank, file) = square.to_rank_and_file();
     
@@ -188,7 +189,7 @@ pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     while r > 0 {
         r -= 1;
         attacks |= 1u64 << Square::from_rank_and_file(r, file) as u64;
-        if (1u64 << Square::from_rank_and_file(r, file) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, file) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -197,7 +198,7 @@ pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     while r < 7 {
         r += 1;
         attacks |= 1u64 << Square::from_rank_and_file(r, file) as u64;
-        if (1u64 << Square::from_rank_and_file(r, file) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(r, file) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -206,7 +207,7 @@ pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     while f < 7 {
         f += 1;
         attacks |= 1u64 << Square::from_rank_and_file(rank, f) as u64;
-        if (1u64 << Square::from_rank_and_file(rank, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(rank, f) as u64) & block_board.0 != 0 {
             break;
         }
     }
@@ -215,43 +216,43 @@ pub fn blocked_rook_attacks(square: Square, block_board: u64) -> u64 {
     while f > 0 {
         f -= 1;
         attacks |= 1u64 << Square::from_rank_and_file(rank, f) as u64;
-        if (1u64 << Square::from_rank_and_file(rank, f) as u64) & block_board != 0 {
+        if (1u64 << Square::from_rank_and_file(rank, f) as u64) & block_board.0 != 0 {
             break;
         }
     }      
 
-    attacks
+    BitBoard(attacks)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::board::{print_board, set_bit};
+    use crate::board::bitboard::BitBoard;
     use super::*;
 
     #[test]
     fn test_pawn_attack_mask() {
         let b1 = mask_pawn_attacks(Side::White, Square::C2);
-        print_board(&b1);
-        assert_eq!(b1, 655360);
+        b1.print_board();
+        assert_eq!(b1, BitBoard(655360));
 
         let b2 = mask_pawn_attacks(Side::Black, Square::A1);
-        print_board(&b2);
-        assert_eq!(b2, 0);
+        b2.print_board();
+        assert_eq!(b2, BitBoard(0));
 
         let b3 = mask_pawn_attacks(Side::Black, Square::A4);
-        print_board(&b3);
-        assert_eq!(b3, 131072);
+        b3.print_board();
+        assert_eq!(b3, BitBoard(131072));
 
         let b4 = mask_pawn_attacks(Side::White, Square::H3);
-        print_board(&b4);
-        assert_eq!(b4, 1073741824);
+        b4.print_board();
+        assert_eq!(b4, BitBoard(1073741824));
     }
 
     #[test]
     fn test_knight_attack_mask() {
         for i in 0..64 {
             let b = mask_knight_attacks(Square::from(i));
-            print_board(&b);
+            b.print_board();
         }
     }
 
@@ -259,7 +260,7 @@ mod tests {
     fn test_king_attack_mask() {
         for i in 0..64 {
             let b = mask_king_attacks(Square::from(i));
-            print_board(&b);
+            b.print_board();
         }
     }
 
@@ -267,7 +268,7 @@ mod tests {
     fn test_bishop_attack_mask() {
         for i in 0..64 {
             let b = mask_bishop_attacks(Square::from(i));
-            print_board(&b);
+            b.print_board();
         }
     }
 
@@ -275,37 +276,37 @@ mod tests {
     fn test_rook_attack_mask() {
         for i in 0..64 {
             let b = mask_rook_attacks(Square::from(i));
-            print_board(&b);
+            b.print_board();
         }
     }
 
     #[test]
     fn test_blocked_bishop_attacks() {
-        let mut blocked_bitboard = 0u64;
-        set_bit(&mut blocked_bitboard, Square::C5);
-        set_bit(&mut blocked_bitboard, Square::G5);
-        set_bit(&mut blocked_bitboard, Square::G1);
-        set_bit(&mut blocked_bitboard, Square::D2);
+        let mut blocked_bitboard = BitBoard(0u64);
+        blocked_bitboard.set_bit(Square::C5);
+        blocked_bitboard.set_bit(Square::G5);
+        blocked_bitboard.set_bit(Square::G1);
+        blocked_bitboard.set_bit(Square::D2);
 
-        print_board(&blocked_bitboard);
+        blocked_bitboard.print_board();
 
         let b1 = blocked_bishop_attacks(Square::A3, blocked_bitboard);
 
-        print_board(&b1);
+        b1.print_board();
     }
 
     #[test]
     fn test_blocked_rook_attacks() {
-        let mut blocked_bitboard = 0u64;
-        set_bit(&mut blocked_bitboard, Square::C3);
-        set_bit(&mut blocked_bitboard, Square::H3);
-        set_bit(&mut blocked_bitboard, Square::E6);
-        set_bit(&mut blocked_bitboard, Square::E2);
+        let mut blocked_bitboard = BitBoard(0u64);
+        blocked_bitboard.set_bit(Square::C3);
+        blocked_bitboard.set_bit(Square::H3);
+        blocked_bitboard.set_bit(Square::E6);
+        blocked_bitboard.set_bit(Square::E2);
 
-        print_board(&blocked_bitboard);
+        blocked_bitboard.print_board();
 
         let b1 = blocked_rook_attacks(Square::E3, blocked_bitboard);
 
-        print_board(&b1);
+        b1.print_board();
     }
 }

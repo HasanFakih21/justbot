@@ -94,3 +94,39 @@ impl Not for BitBoard {
         Self(!self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_bits() {
+        let mut bb = BitBoard(0);
+        bb.set_bit(Square::A1);
+
+        assert_eq!(bb.count_bits(), 1);
+
+        bb.set_bit(Square::A3);
+        bb.set_bit(Square::A2);
+        bb.set_bit(Square::A1);
+
+        assert_eq!(bb.count_bits(), 3);
+    }
+
+    #[test]
+    fn test_least_sig_bit() {
+        let mut bb = BitBoard(0);
+        bb.set_bit(Square::A3);
+
+        assert_eq!(bb.least_sig_bit(), Square::A3);
+
+        bb.set_bit(Square::B3);
+        bb.set_bit(Square::B2);
+        bb.set_bit(Square::H8);
+        bb.set_bit(Square::C2);
+
+        assert_eq!(bb.least_sig_bit(), Square::B2);
+        bb.clear_bit(Square::B2);
+        assert_eq!(bb.least_sig_bit(), Square::C2);
+    }
+}

@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::board::{Board, Piece, Side, Square, constants::STARTING_FEN};
+use crate::board::{Board, Piece, Side, Square, bitboard::BitBoard, constants::STARTING_FEN};
 
 pub mod board;
 pub mod attacks;
@@ -87,11 +87,11 @@ fn draw_piece(x: f32, y: f32, texture: &Texture2D) {
 }
 
 
-fn draw_board(bit_board: &u64, texture: &Texture2D) {
+fn draw_board(bit_board: &BitBoard, texture: &Texture2D) {
     for rank in (0..8).rev() {
         for file in 0..8 {
             let board_index = (rank * 8) + file; 
-            let bit_state = bit_board & (1u64 << board_index);
+            let bit_state = bit_board.0 & (1u64 << board_index);
 
             if bit_state != 0 {
                 draw_piece(file as f32 * 96.0, (7 - rank) as f32 * 96.0, texture);
