@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
-use crate::board::{Piece, Square, blocked_bishop_attacks, blocked_rook_attacks, count_bits, mask_bishop_attacks, mask_rook_attacks};
+use crate::board::bitboard::BitBoard;
+use crate::board::{Piece, Square, blocked_bishop_attacks, blocked_rook_attacks, mask_bishop_attacks, mask_rook_attacks};
 use crate::occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy};
 
 static SEED: Mutex<u32> = Mutex::new(1804289383);
@@ -163,11 +164,11 @@ pub fn generate_magic_number() -> u64 {
 }
 
 pub fn find_magic_number(square: Square, piece: Piece) -> u64 {
-    let mut occupancies: [u64; 4096] = [0; 4096];
-    let mut attacks: [u64; 4096] = [0; 4096];
-    let mut used_attacks: [u64; 4096];
+    let mut occupancies: [BitBoard; 4096] = [BitBoard(0); 4096];
+    let mut attacks: [BitBoard; 4096] = [BitBoard(0); 4096];
+    let mut used_attacks: [BitBoard; 4096];
     
-    let attack_mask: u64 = match piece {
+    let attack_mask: BitBoard = match piece {
         Piece::Bishop => mask_bishop_attacks(square),
         Piece::Rook => mask_rook_attacks(square),
         _=> return 0
@@ -192,15 +193,15 @@ pub fn find_magic_number(square: Square, piece: Piece) -> u64 {
     for _ in 0..10000000 {
         let magic_number = generate_magic_number();
 
-        if count_bits(&((attack_mask.wrapping_mul(magic_number)) & 0xFF00000000000000)) < 6 {continue;}
+        if ((attack_mask.0.wrapping_mul(magic_number)) & 0xFF00000000000000).count_ones() < 6 {continue;}
 
-        used_attacks = [0; 4096];
+        used_attacks = [BitBoard(0); 4096];
 
         let (mut index, mut fail) = (0, false);
         while !fail && (index < (1 << relevant_bits)) {
             let magic_index = get_magic_index(occupancies[index], relevant_bits, magic_number);
 
-            if used_attacks[magic_index] == 0 {
+            if used_attacks[magic_index] == BitBoard(0) {
                 used_attacks[magic_index] = attacks[index];
             }
 
@@ -219,13 +220,12 @@ pub fn find_magic_number(square: Square, piece: Piece) -> u64 {
     0
 }
 
-pub const fn get_magic_index(occ_bb: u64, relevant_bits: usize, magic_number: u64) -> usize {
-    ((occ_bb.wrapping_mul(magic_number)) >> (64 - relevant_bits)) as usize
+pub const fn get_magic_index(occ_bb: BitBoard, relevant_bits: usize, magic_number: u64) -> usize {
+    ((occ_bb.0.wrapping_mul(magic_number)) >> (64 - relevant_bits)) as usize
 }
     
 #[cfg(test)]
 mod tests {
-    use crate::board::print_board;
     use super::*;
 
     //#[test]
@@ -258,14 +258,5 @@ mod tests {
         println!("{}", get_random_u64_num());
         println!("{}", get_random_u64_num());
         println!("{}", get_random_u64_num());
-    }
-
-    #[test]
-    fn magic_num_test() {
-        print_board(&(get_random_num() as u64));
-        print_board(&(get_random_num() as u64 & 0xFFFF));
-        print_board(&get_random_u64_num());
-        print_board(&generate_magic_number());
-        print_board(&(find_magic_number(Square::B1, Piece::Rook)));
     }
 }
