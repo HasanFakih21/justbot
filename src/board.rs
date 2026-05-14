@@ -5,6 +5,7 @@ pub mod constants;
 pub mod moves;
 pub mod parser;
 pub mod bitboard;
+pub mod makemove;
 
 use std::fmt::Display;
 
@@ -13,10 +14,11 @@ pub use pieces::*;
 pub use sides::*;
 
 pub use crate::attacks::*;
-use crate::{board::{bitboard::BitBoard, moves::MoveList}, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}};
+use crate::{board::{bitboard::BitBoard, makemove::BoardState, moves::MoveList}, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}};
 
 pub struct Board {
     pub board_pieces: [[BitBoard; 6]; 2],
+    pub pieces_on_squares: [Option<(Side, Piece)>; 64],
     pub board_occupancies: [BitBoard; 2],
     pub side_to_move: Side,
     pub enpassant: Option<Square>,
@@ -32,6 +34,7 @@ pub struct Board {
     pub rook_attacks: Vec<BitBoard>,
 
     pub move_list: MoveList,
+    pub state_stack: Vec<BoardState>,
 }
 
 impl Default for Board {
@@ -45,6 +48,7 @@ impl Board {
     pub fn new() -> Self {
         let mut b = Board {
             board_pieces: [[BitBoard(0); 6]; 2],
+            pieces_on_squares: [None; 64],
             board_occupancies: [BitBoard(0); 2],
             side_to_move: Side::White,
             enpassant: None,
@@ -60,6 +64,7 @@ impl Board {
             pawn_attacks: [[BitBoard(0); 64]; 2], knight_attacks: [BitBoard(0); 64], king_attacks: [BitBoard(0); 64], bishop_attacks: vec![BitBoard(0); 64 * 512], rook_attacks: vec![BitBoard(0); 64 * 4096],
 
             move_list: MoveList::new(),
+            state_stack: Vec::new(),
         };
 
         b.init_leaping_attacks();
@@ -73,27 +78,20 @@ impl Board {
         (self.board_pieces[side as usize][piece as usize].0 & b) != 0
     }
 
-    pub fn get_piece_at_square(&self, square: Square) -> Option<(Piece, Side)> {
-        for piece_index in 0..6 {
-            if self.is_there(Side::White, Piece::from(piece_index), square) {
-                return Some((Piece::from(piece_index), Side::White));
-            }
-
-            if self.is_there(Side::Black, Piece::from(piece_index), square) {
-                return Some((Piece::from(piece_index), Side::Black))
-            }
-        }
-        None
+    pub fn get_piece_at_square(&self, square: Square) -> Option<(Side, Piece)> {
+        self.pieces_on_squares[square as usize]
     }
 
     pub fn place_piece(&mut self, side: Side, piece: Piece, square: Square) {
         self.board_pieces[side as usize][piece as usize].set_bit(square);
         self.board_occupancies[side as usize].set_bit(square); 
+        self.pieces_on_squares[square as usize] = Some((side, piece));
     }
 
     pub fn remove_piece(&mut self, side: Side, piece: Piece, square: Square) {
         self.board_pieces[side as usize][piece as usize].clear_bit(square);
         self.board_occupancies[side as usize].clear_bit(square);
+        self.pieces_on_squares[square as usize] = None;
     }
 
     pub fn init_leaping_attacks(&mut self) {
@@ -178,11 +176,11 @@ impl Display for Board {
             output.push_str(&format!("{}   ", 1 + rank));
             for file in 0..8 {
                 let square = Square::from_rank_and_file(rank, file);
-                let piece: Option<(Piece, Side)> = self.get_piece_at_square(square);
+                let piece: Option<(Side, Piece)> = self.get_piece_at_square(square);
 
                 if let Some(p) = piece {
-                    let mut s = format!(" {} ", p.0);
-                    if let Side::Black = p.1 {
+                    let mut s = format!(" {} ", p.1);
+                    if let Side::Black = p.0 {
                         s = s.to_lowercase();
                     }
                     output.push_str(&s);
