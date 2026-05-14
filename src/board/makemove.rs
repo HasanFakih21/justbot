@@ -65,8 +65,9 @@ impl Board {
         else {
             match kind {
                 MoveKind::EnPassant => {
-                    let (other_side, captured_piece) = self.get_piece_at_square(Square::from(to as usize ^ 8)).unwrap();
-                    self.remove_piece(other_side, captured_piece, to);
+                    let pawn_square = Square::from(to as usize ^ 8);
+                    let (other_side, captured_piece) = self.get_piece_at_square(pawn_square).unwrap();
+                    self.remove_piece(other_side, captured_piece, pawn_square);
                     self.remove_piece(side, piece, from);
                     self.place_piece(side, piece, to);
                 },
@@ -149,19 +150,59 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::{Board, Square, moves::{Move, MoveKind}};
+    use crate::board::{Board, Piece, Side, Square, moves::{Move, MoveKind}};
 
     #[test]
     fn test_make_move() {
-        let mut board = Board::from_fen("r3k2r/p3n2p/n1pp2pb/1p2p1N1/8/2PBP3/PP1B1PPP/R3K2R w KQkq b6 0 16");
+        let mut board = Board::from_fen("1K6/3pp1P1/4R3/3k3p/Ppn5/4b3/1PP1P1p1/7B b - a3 0 1");
         println!("{board}");
 
-        let m = Move::new(Square::A2, Square::A4, MoveKind::DoublePawn);
+        let m = Move::new(Square::B4, Square::A3, MoveKind::EnPassant);
         board.make_move(m);
-
         println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::A3).unwrap(), (Side::Black, Piece::Pawn));
+        assert!(board.get_piece_at_square(Square::A4).is_none());
 
         board.unmake_move();
         println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::B4).unwrap(), (Side::Black, Piece::Pawn));
+
+        let m = Move::new(Square::C4, Square::B2, MoveKind::Capture);
+        board.make_move(m);
+        println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::B2).unwrap(), (Side::Black, Piece::Knight));
+
+        let mut board = Board::from_fen("r3k2r/pppqn2p/n1bp2pb/1N2p3/2B5/1QP1PN2/PP1B1PPP/R3K2R w KQkq - 10 12");
+        println!("{board}");
+
+        let m = Move::new(Square::E1, Square::G1, MoveKind::KingCastle);
+        board.make_move(m);
+        println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::G1).unwrap(), (Side::White, Piece::King));
+        assert_eq!(board.get_piece_at_square(Square::F1).unwrap(), (Side::White, Piece::Rook));
+        assert!(board.get_piece_at_square(Square::E1).is_none());
+
+        let m = Move::new(Square::E8, Square::C8, MoveKind::QueenCastle);
+        board.make_move(m);
+        println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::C8).unwrap(), (Side::Black, Piece::King));
+        assert_eq!(board.get_piece_at_square(Square::D8).unwrap(), (Side::Black, Piece::Rook));
+        assert!(board.get_piece_at_square(Square::E8).is_none());
+
+        let mut board = Board::from_fen("2kr3r/pppqn2p/n1b3pb/1N2p3/2B5/1QP4N/PP2pPPP/R1B2R1K b - - 1 17");
+        println!("{board}");
+
+        let m = Move::new(Square::E2, Square::E1, MoveKind::BPromotion);
+        board.make_move(m);
+        println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::E1).unwrap(), (Side::Black, Piece::Bishop));
+        assert!(board.get_piece_at_square(Square::E2).is_none());
+
+        board.unmake_move();
+        let m = Move::new(Square::E2, Square::F1, MoveKind::QPromCapture);
+        board.make_move(m);
+        println!("{board}");
+        assert_eq!(board.get_piece_at_square(Square::F1).unwrap(), (Side::Black, Piece::Queen));
+        assert!(board.get_piece_at_square(Square::E2).is_none());
     }
 }
