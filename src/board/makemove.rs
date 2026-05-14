@@ -65,7 +65,10 @@ impl Board {
         else {
             match kind {
                 MoveKind::EnPassant => {
-
+                    let (other_side, captured_piece) = self.get_piece_at_square(Square::from(to as usize ^ 8)).unwrap();
+                    self.remove_piece(other_side, captured_piece, to);
+                    self.remove_piece(side, piece, from);
+                    self.place_piece(side, piece, to);
                 },
                 MoveKind::BPromotion => {
                     self.remove_piece(side, piece, from);
