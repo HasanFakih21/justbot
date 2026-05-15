@@ -1,4 +1,5 @@
-use std::{fmt::Display, slice::Iter};
+use std::{fmt::Display, slice::{Iter, IterMut}};
+use std::vec::IntoIter;
 
 use crate::board::{Board, Castling, Piece, Side, Square, bitboard::BitBoard, constants::{B_FILE, NORTH, RANK_1, RANK_4, RANK_5, RANK_8, SOUTH, WK_SIDE, WQ_SIDE}};
 
@@ -16,6 +17,14 @@ impl MoveList {
 
     pub fn iter(&self) -> Iter<'_, Move> {
         self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<'_, Move> {
+        self.0.iter_mut()
+    }
+
+    pub fn into_iter(&self) -> IntoIter<Move> {
+        self.0.clone().into_iter()
     }
 }
 

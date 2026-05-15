@@ -1,11 +1,15 @@
 use macroquad::prelude::*;
-use crate::board::{Board, Piece, Side, Square, bitboard::BitBoard, constants::STARTING_FEN};
+use crate::board::moves::Move;
+use crate::board::{Board, Piece, Side, Square, constants::STARTING_FEN};
+use crate::draw::{draw_board, draw_piece, generate_piece_texture_arrays};
 
 pub mod board;
 pub mod attacks;
 pub mod occupancy;
 pub mod magics;
 pub mod perft;
+
+pub mod draw;
 
 #[macroquad::main("MyGame")]
 async fn main() {
@@ -15,13 +19,14 @@ async fn main() {
 
     //Initialilze Board class
     let mut board = Board::from_fen(STARTING_FEN);
-
+    let mut move_list = board.generate_all_moves();
     let mut selected_piece: Option<(Side, Piece, Square)> = None;
+    let mut selected_piece_moves: Vec<Move> = Vec::new();
+    let mut mailbox = board.pieces_on_squares;
 
     loop {
         request_new_screen_size(768.0, 768.0);
         let mouse_pos = mouse_position();
-
         draw_texture_ex(
             &board_texture,
             0.0,
@@ -33,37 +38,31 @@ async fn main() {
             }
         );
 
-        piece_textures
-            .iter()
-            .enumerate()
-            .for_each(|(side_index, pieces)| {
-                pieces
-                    .iter()
-                    .enumerate()
-                    .for_each(|(piece_index, texture)| {
-                        draw_board(&board.board_pieces[side_index][piece_index], texture);
-                    });
-            });
+        draw_board(mailbox, &piece_textures);  
 
         if is_mouse_button_pressed(MouseButton::Left) && selected_piece.is_none() {
             let square = get_square_from_mouse_position(mouse_pos);
-
             let piece_present = board.get_piece_at_square(square);
+            selected_piece_moves = move_list.into_iter().filter(|e| e.get_from() == square).collect();
 
             if let Some(piece) = piece_present && piece.0 == board.side_to_move {
                     selected_piece = Some((board.side_to_move, piece.1, square));
-                    board.remove_piece(board.side_to_move, piece.1, square);
+                    mailbox[square as usize] = None;
                 }
         }
 
         if is_mouse_button_down(MouseButton::Left) && let Some((side, piece, _)) = selected_piece {
             draw_piece(mouse_pos.0 - 48.0, mouse_pos.1 - 48.0, &piece_textures[side as usize][piece as usize]);
-        } else if let Some((side, piece, original_square)) = selected_piece {
+        } else if selected_piece.is_some() {
             let new_square = get_square_from_mouse_position(mouse_pos);
-
-            board.place_piece(side, piece, new_square);
-            if new_square != original_square {board.side_to_move = board.side_to_move.other();}
+            let selected_move = selected_piece_moves.iter().find(|e| e.get_to() == new_square);
+            if let Some(m) = selected_move {
+                let _ = board.make_move(*m);
+                move_list = board.generate_all_moves();
+            }
             selected_piece = None;
+            selected_piece_moves.clear();
+            mailbox = board.pieces_on_squares;
         }
 
         next_frame().await
@@ -74,52 +73,4 @@ fn get_square_from_mouse_position(mouse_pos: (f32, f32)) -> Square {
     let file = (mouse_pos.0 / 96.0).floor() as usize;
     let rank = 7 - (mouse_pos.1 / 96.0).floor() as usize;
     Square::from_rank_and_file(rank, file)
-}
-
-
-fn draw_piece(x: f32, y: f32, texture: &Texture2D) {
-    texture.set_filter(FilterMode::Linear);
-    let params = DrawTextureParams {
-        dest_size: Some(vec2(96.0, 96.0)),
-        ..Default::default()
-    };
-
-    draw_texture_ex(texture, x, y, WHITE, params);
-}
-
-
-fn draw_board(bit_board: &BitBoard, texture: &Texture2D) {
-    for rank in (0..8).rev() {
-        for file in 0..8 {
-            let board_index = (rank * 8) + file; 
-            let bit_state = bit_board.0 & (1u64 << board_index);
-
-            if bit_state != 0 {
-                draw_piece(file as f32 * 96.0, (7 - rank) as f32 * 96.0, texture);
-            }
-        }
-    }
-}
-
-async fn generate_piece_texture_arrays() -> [[Texture2D; 6]; 2] {
-    let pw_texture = load_texture("assets/pw.png").await.unwrap();
-    let nw_texture = load_texture("assets/nw.png").await.unwrap();
-    let bw_texture = load_texture("assets/bw.png").await.unwrap();
-    let rw_texture = load_texture("assets/rw.png").await.unwrap();
-    let qw_texture = load_texture("assets/qw.png").await.unwrap();
-    let kw_texture = load_texture("assets/kw.png").await.unwrap();
-
-    let pb_texture = load_texture("assets/pb.png").await.unwrap();
-    let nb_texture = load_texture("assets/nb.png").await.unwrap();
-    let bb_texture = load_texture("assets/bb.png").await.unwrap();
-    let rb_texture = load_texture("assets/rb.png").await.unwrap();
-    let qb_texture = load_texture("assets/qb.png").await.unwrap();
-    let kb_texture = load_texture("assets/kb.png").await.unwrap();
-    
-    build_textures_atlas();
-
-    [
-        [pw_texture, nw_texture, bw_texture, rw_texture, qw_texture, kw_texture],
-        [pb_texture, nb_texture, bb_texture, rb_texture, qb_texture, kb_texture]
-    ]
 }
