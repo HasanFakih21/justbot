@@ -60,12 +60,28 @@ mod tests {
         println!("Number of nodes: {nodes_count}\nTime: {}ms", clock.elapsed().as_millis()); 
         assert_eq!(nodes_count, 674624);
 
-        let mut board4 = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/P2P2PP/r2Q1RK1 w kq - 0 2");
+        let mut board4 = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
         println!("{board4}");
         nodes_count = 0;
         clock = Instant::now();
-        perft(2, &mut board4, &mut nodes_count);
+        perft(4, &mut board4, &mut nodes_count);
         println!("Number of nodes: {nodes_count}\nTime: {}ms", clock.elapsed().as_millis()); 
-        assert_eq!(nodes_count, 1344);
+        assert_eq!(nodes_count, 422333);
+
+        let mut board5 = Board::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ");
+        println!("{board5}");
+        nodes_count = 0;
+        clock = Instant::now();
+        perft(4, &mut board5, &mut nodes_count);
+        println!("Number of nodes: {nodes_count}\nTime: {}ms", clock.elapsed().as_millis()); 
+        assert_eq!(nodes_count, 2103487);
+
+        let mut board6 = Board::from_fen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ");
+        println!("{board6}");
+        nodes_count = 0;
+        clock = Instant::now();
+        perft(4, &mut board6, &mut nodes_count);
+        println!("Number of nodes: {nodes_count}\nTime: {}ms", clock.elapsed().as_millis()); 
+        assert_eq!(nodes_count, 3894594);
     }
 }
