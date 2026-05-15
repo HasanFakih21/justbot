@@ -30,15 +30,16 @@ pub fn perft_divide(depth: usize, board: &mut Board) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board::Board, perft::perft};
+    use std::time::Instant;
+    use crate::{board::{Board, constants::STARTING_FEN}, perft::perft};
 
     #[test]
     fn test_perft() {
-        let mut board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ");
+        let mut board = Board::from_fen(STARTING_FEN);
         println!("{board}");
         let mut nodes_count = 0;
-        perft(5, &mut board, &mut nodes_count);
-
-        println!("Number of nodes: {nodes_count}");
+        let clock = Instant::now();
+        perft(6, &mut board, &mut nodes_count);
+        println!("Number of nodes: {nodes_count}\nTime: {}s", clock.elapsed().as_secs()); 
     }
 }
