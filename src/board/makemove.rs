@@ -1,19 +1,10 @@
-use crate::board::{CastlingRights, Piece, Side, Square, bitboard::BitBoard, constants::{KING_SIDE_ROOK_BLACK, KING_SIDE_ROOK_WHITE, QUEEN_SIDE_ROOK_BLACK, QUEEN_SIDE_ROOK_WHITE}, moves::{Move, MoveKind}};
+use crate::board::{Piece, Side, Square, constants::{KING_SIDE_ROOK_BLACK, KING_SIDE_ROOK_WHITE, QUEEN_SIDE_ROOK_BLACK, QUEEN_SIDE_ROOK_WHITE}, moves::{Move, MoveKind}};
 use super::Board;
 
 pub struct LegalMove;
 pub struct IllegalMove;
 
-#[derive(Debug)]
-pub struct BoardState {
-    pub board_pieces: [[BitBoard; 6]; 2],
-    pub pieces_on_squares: [Option<(Side, Piece)>; 64],
-    pub board_occupancies: [BitBoard; 2],
-    pub side_to_move: Side,
-    pub enpassant: Option<Square>,
-    pub castling_rights: CastlingRights,
-    pub material_value: [i32; 2],
-}
+
 
 impl Board {
     pub fn make_move(&mut self, m: Move) -> Result<LegalMove, IllegalMove> {
@@ -27,15 +18,15 @@ impl Board {
         let opp_queen_rook_square = match side {Side::White => QUEEN_SIDE_ROOK_BLACK, Side::Black => QUEEN_SIDE_ROOK_WHITE};
         self.copy_state();
 
-        self.enpassant = None;
+        self.board_state.enpassant = None;
         if let Piece::King = piece {
-            self.castling_rights.clear_king_side(side);
-            self.castling_rights.clear_queen_side(side);
+            self.board_state.castling_rights.clear_king_side(side);
+            self.board_state.castling_rights.clear_queen_side(side);
         }
-        self.side_to_move = self.side_to_move.other();
+        self.board_state.side_to_move = self.board_state.side_to_move.other();
         if let Piece::Rook = piece {
-            if from == king_rook_square  && self.castling_rights.can_king_side(side)  {self.castling_rights.clear_king_side(side);}
-            if from == queen_rook_square && self.castling_rights.can_queen_side(side) {self.castling_rights.clear_queen_side(side);}
+            if from == king_rook_square  && self.board_state.castling_rights.can_king_side(side)  {self.board_state.castling_rights.clear_king_side(side);}
+            if from == queen_rook_square && self.board_state.castling_rights.can_queen_side(side) {self.board_state.castling_rights.clear_queen_side(side);}
         }
 
         if kind.is_quiet() {
@@ -43,23 +34,23 @@ impl Board {
                 MoveKind::KingCastle => {
                     self.remove_piece(side, piece, from);
                     self.remove_piece(side, Piece::Rook, king_rook_square);
-                    self.castling_rights.clear_king_side(side);
-                    self.castling_rights.clear_queen_side(side);
+                    self.board_state.castling_rights.clear_king_side(side);
+                    self.board_state.castling_rights.clear_queen_side(side);
                     self.place_piece(side, piece, to);
                     self.place_piece(side, Piece::Rook, from.shift(1).unwrap());
                 },
                 MoveKind::QueenCastle => {
                     self.remove_piece(side, piece, from);
                     self.remove_piece(side, Piece::Rook, queen_rook_square);
-                    self.castling_rights.clear_queen_side(side);
-                    self.castling_rights.clear_king_side(side);
+                    self.board_state.castling_rights.clear_queen_side(side);
+                    self.board_state.castling_rights.clear_king_side(side);
                     self.place_piece(side, piece, to);
                     self.place_piece(side, Piece::Rook, from.shift(-1).unwrap());
                 },
                 MoveKind::DoublePawn => {
                     self.remove_piece(side, piece, from);
                     self.place_piece(side, piece, to);
-                    self.enpassant = Some(Square::from(to as usize ^ 8))
+                    self.board_state.enpassant = Some(Square::from(to as usize ^ 8))
                 },
                 _=> {
                     self.remove_piece(side, piece, from);
@@ -71,8 +62,8 @@ impl Board {
         else {
             if let Some((other_side, captured_piece)) = self.get_piece_at_square(to)
                 && captured_piece == Piece::Rook {
-                    if to == opp_king_rook_square {self.castling_rights.clear_king_side(other_side);}
-                    if to == opp_queen_rook_square {self.castling_rights.clear_queen_side(other_side);}
+                    if to == opp_king_rook_square {self.board_state.castling_rights.clear_king_side(other_side);}
+                    if to == opp_queen_rook_square {self.board_state.castling_rights.clear_queen_side(other_side);}
                 }
             match kind {
                 MoveKind::EnPassant => {
@@ -141,32 +132,16 @@ impl Board {
 
     pub fn unmake_move(&mut self) {
         if let Some(prev_state) = self.state_stack.pop() {
-            self.board_pieces = prev_state.board_pieces;
-            self.pieces_on_squares = prev_state.pieces_on_squares;
-            self.board_occupancies = prev_state.board_occupancies;
-            self.side_to_move = prev_state.side_to_move;
-            self.enpassant = prev_state.enpassant;
-            self.castling_rights = prev_state.castling_rights;
-            self.material_value = prev_state.material_value;
+            self.board_state = prev_state;
         }
     }
 
     pub fn copy_state(&mut self) {
-        self.state_stack.push(
-            BoardState {
-                board_pieces: self.board_pieces,
-                pieces_on_squares: self.pieces_on_squares,
-                board_occupancies: self.board_occupancies,
-                side_to_move: self.side_to_move,
-                enpassant: self.enpassant,
-                castling_rights: self.castling_rights,
-                material_value: self.material_value,
-            }
-        );
+        self.state_stack.push(self.board_state.clone());
     }
 
     pub fn is_king_in_attack(&self, side: Side) -> bool {
-        let king_square = self.board_pieces[side as usize][Piece::King as usize].least_sig_bit().unwrap();
+        let king_square = self.board_state.board_pieces[side as usize][Piece::King as usize].least_sig_bit().unwrap();
         self.is_attacked_at_by(king_square, side.other())
     }
 }
@@ -242,7 +217,7 @@ mod tests {
 
         let m = Move::new(Square::G2, Square::H1, MoveKind::NPromCapture);
         assert!(board.make_move(m).is_ok());
-        assert!(!board.castling_rights.can_king_side(Side::White));
+        assert!(!board.board_state.castling_rights.can_king_side(Side::White));
         println!("{board}");
     }
 }

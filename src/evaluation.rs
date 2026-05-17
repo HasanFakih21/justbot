@@ -2,8 +2,8 @@ use crate::board::Board;
 
 impl Board {
     pub const fn get_material_evaluation(&self) -> i32 {
-        let side = self.side_to_move;
-        self.material_value[side as usize] - self.material_value[side.other() as usize] 
+        let side = self.board_state.side_to_move;
+        self.board_state.material_value[side as usize] - self.board_state.material_value[side.other() as usize] 
     }
 }
 

@@ -1,3 +1,10 @@
+use std::fmt::Display;
+use crate::{board::bitboard::BitBoard, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}};
+pub use crate::attacks::*;
+pub use squares::*;
+pub use pieces::*;
+pub use sides::*;
+
 pub mod squares;
 pub mod pieces;
 pub mod sides;
@@ -7,23 +14,38 @@ pub mod parser;
 pub mod bitboard;
 pub mod makemove;
 
-use std::fmt::Display;
-
-pub use squares::*;
-pub use pieces::*;
-pub use sides::*;
-
-pub use crate::attacks::*;
-use crate::{board::{bitboard::BitBoard, makemove::BoardState}, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}};
-
-pub struct Board {
+#[derive(Debug, Clone)]
+pub struct BoardState {
     pub board_pieces: [[BitBoard; 6]; 2],
     pub pieces_on_squares: [Option<(Side, Piece)>; 64],
     pub board_occupancies: [BitBoard; 2],
     pub side_to_move: Side,
     pub enpassant: Option<Square>,
     pub castling_rights: CastlingRights,
+    pub material_value: [i32; 2],
+}
 
+impl BoardState {
+    pub fn new() -> Self {
+        BoardState { 
+            board_pieces: [[BitBoard(0); 6]; 2], 
+            pieces_on_squares: [None; 64],
+            board_occupancies: [BitBoard(0); 2],
+            side_to_move: Side::White,
+            enpassant: None,
+            castling_rights: CastlingRights::new(),
+            material_value: [0; 2]
+        }
+    }
+}
+
+impl Default for BoardState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct Board {
     pub bishop_masks: [BitBoard; 64],
     pub rook_masks: [BitBoard; 64],
 
@@ -33,8 +55,8 @@ pub struct Board {
     pub bishop_attacks: Vec<BitBoard>,
     pub rook_attacks: Vec<BitBoard>,
 
+    pub board_state: BoardState,
     pub state_stack: Vec<BoardState>,
-    pub material_value: [i32; 2],
 }
 
 impl Default for Board {
@@ -47,13 +69,6 @@ impl Default for Board {
 impl Board {
     pub fn new() -> Self {
         let mut b = Board {
-            board_pieces: [[BitBoard(0); 6]; 2],
-            pieces_on_squares: [None; 64],
-            board_occupancies: [BitBoard(0); 2],
-            side_to_move: Side::White,
-            enpassant: None,
-            castling_rights: CastlingRights::new(),
-
             bishop_masks: std::array::from_fn(|i| {
                 mask_bishop_attacks(Square::from(i))
             }),
@@ -64,7 +79,7 @@ impl Board {
             pawn_attacks: [[BitBoard(0); 64]; 2], knight_attacks: [BitBoard(0); 64], king_attacks: [BitBoard(0); 64], bishop_attacks: vec![BitBoard(0); 64 * 512], rook_attacks: vec![BitBoard(0); 64 * 4096],
 
             state_stack: Vec::new(),
-            material_value: [0; 2],
+            board_state: BoardState::new(),
         };
 
         b.init_leaping_attacks();
@@ -75,25 +90,25 @@ impl Board {
 
     pub fn is_there(&self, side: Side, piece: Piece, square: Square) -> bool {
         let b = 1u64 << square as u64;
-        (self.board_pieces[side as usize][piece as usize].0 & b) != 0
+        (self.board_state.board_pieces[side as usize][piece as usize].0 & b) != 0
     }
 
     pub fn get_piece_at_square(&self, square: Square) -> Option<(Side, Piece)> {
-        self.pieces_on_squares[square as usize]
+        self.board_state.pieces_on_squares[square as usize]
     }
 
     pub fn place_piece(&mut self, side: Side, piece: Piece, square: Square) {
-        self.board_pieces[side as usize][piece as usize].set_bit(square);
-        self.board_occupancies[side as usize].set_bit(square); 
-        self.pieces_on_squares[square as usize] = Some((side, piece));
-        self.material_value[side as usize] += piece.value();
+        self.board_state.board_pieces[side as usize][piece as usize].set_bit(square);
+        self.board_state.board_occupancies[side as usize].set_bit(square); 
+        self.board_state.pieces_on_squares[square as usize] = Some((side, piece));
+        self.board_state.material_value[side as usize] += piece.value();
     }
 
     pub fn remove_piece(&mut self, side: Side, piece: Piece, square: Square) {
-        self.board_pieces[side as usize][piece as usize].clear_bit(square);
-        self.board_occupancies[side as usize].clear_bit(square);
-        self.pieces_on_squares[square as usize] = None;
-        self.material_value[side as usize] -= piece.value();
+        self.board_state.board_pieces[side as usize][piece as usize].clear_bit(square);
+        self.board_state.board_occupancies[side as usize].clear_bit(square);
+        self.board_state.pieces_on_squares[square as usize] = None;
+        self.board_state.material_value[side as usize] -= piece.value();
     }
 
     pub fn init_leaping_attacks(&mut self) {
@@ -167,7 +182,7 @@ impl Board {
     }
 
     pub fn get_all_occupancy(&self) -> BitBoard {
-        self.board_occupancies[Side::White as usize] | self.board_occupancies[Side::Black as usize]
+        self.board_state.board_occupancies[Side::White as usize] | self.board_state.board_occupancies[Side::Black as usize]
     }
 }
 
@@ -193,7 +208,7 @@ impl Display for Board {
             output.push('\n');
         }
         output.push_str("\n     A  B  C  D  E  F  G  H\n");
-        output.push_str(&format!("\n     Side to move: {} \n     Castling: {}\n     Enpassant: {:?}\n", self.side_to_move, self.castling_rights, self.enpassant));
+        output.push_str(&format!("\n     Side to move: {} \n     Castling: {}\n     Enpassant: {:?}\n", self.board_state.side_to_move, self.board_state.castling_rights, self.board_state.enpassant));
         write!(f, "{}", output)
     }
 }
@@ -249,8 +264,8 @@ mod tests {
         let mut board = Board::from_fen(STARTING_FEN);
         board.remove_piece(Side::White, Piece::Pawn, Square::A2);
         board.get_all_occupancy().print_board();
-        board.board_occupancies[Side::Black as usize].print_board();
-        board.board_occupancies[Side::White as usize].print_board();
+        board.board_state.board_occupancies[Side::Black as usize].print_board();
+        board.board_state.board_occupancies[Side::White as usize].print_board();
     }
 
     #[test]

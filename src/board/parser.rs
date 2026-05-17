@@ -29,8 +29,8 @@ impl Board {
 
         let turn = fen.next().unwrap();
         match turn {
-            "w" => board.side_to_move = Side::White,
-            "b" => board.side_to_move = Side::Black,
+            "w" => board.board_state.side_to_move = Side::White,
+            "b" => board.board_state.side_to_move = Side::Black,
             _ => eprintln!("Invalid side to move")
         }
 
@@ -40,12 +40,12 @@ impl Board {
                 continue;
             }
 
-            board.castling_rights.set(Castling::from(c) as u8);
+            board.board_state.castling_rights.set(Castling::from(c) as u8);
         }
 
         let enpassant = fen.next().unwrap();
         if let Ok(square) = Square::try_from(enpassant) {
-            board.enpassant = Some(square);
+            board.board_state.enpassant = Some(square);
         }
 
         board
