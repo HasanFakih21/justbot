@@ -23,6 +23,8 @@ pub struct BoardState {
     pub enpassant: Option<Square>,
     pub castling_rights: CastlingRights,
     pub material_value: [i32; 2],
+    pub piece_square_value: [i32; 2],
+    pub checkmated: i32,
 }
 
 impl BoardState {
@@ -34,7 +36,9 @@ impl BoardState {
             side_to_move: Side::White,
             enpassant: None,
             castling_rights: CastlingRights::new(),
-            material_value: [0; 2]
+            material_value: [0; 2],
+            piece_square_value: [0; 2],
+            checkmated: 0,
         }
     }
 }
@@ -102,6 +106,7 @@ impl Board {
         self.board_state.board_occupancies[side as usize].set_bit(square); 
         self.board_state.pieces_on_squares[square as usize] = Some((side, piece));
         self.board_state.material_value[side as usize] += piece.value();
+        self.board_state.piece_square_value[side as usize] += self.get_piece_square_score(piece, square, side);
     }
 
     pub fn remove_piece(&mut self, side: Side, piece: Piece, square: Square) {
@@ -109,6 +114,7 @@ impl Board {
         self.board_state.board_occupancies[side as usize].clear_bit(square);
         self.board_state.pieces_on_squares[square as usize] = None;
         self.board_state.material_value[side as usize] -= piece.value();
+        self.board_state.piece_square_value[side as usize] -= self.get_piece_square_score(piece, square, side);
     }
 
     pub fn init_leaping_attacks(&mut self) {
