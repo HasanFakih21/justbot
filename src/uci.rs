@@ -35,8 +35,13 @@ pub fn input_loop() {
 
         let (command, args) = input_buffer.split_once(" ").unwrap_or((&input_buffer, ""));
 
-        match command {
+        match command.trim() {
             "position" => position(args, &mut board),
+            "uci" => uci(),
+            "isready" => println!("readyok"),
+            "ucinewgame" => board = Board::from_fen(STARTING_FEN),
+            "go" => go(args, &mut board),
+            "quit" => break,
             _=> eprintln!("Not a valid command"),
         }
         
@@ -45,7 +50,7 @@ pub fn input_loop() {
 }
 
 pub fn position(args: &str, board: &mut Board) {
-    if args.is_empty() {
+    if args.trim().is_empty() {
         eprintln!("Need to provide a valid argument!");
         return
     }
@@ -56,30 +61,50 @@ pub fn position(args: &str, board: &mut Board) {
     match command.trim() {
         "startpos" => {
             *board = Board::from_fen(STARTING_FEN);
-            println!("{board}");
         },
         "fen" => {
+            if args.trim().is_empty() {
+                eprintln!("Please provide a fen string");
+                return;
+            }
             *board = Board::from_fen(args);
-            println!("{board}");
         },
-        _ => eprintln!("Not a valid position argument")
+        _ => eprintln!("Not a valid position argument!")
     }   
 
     if !moves.trim().is_empty() {
         for m_str in moves.split_ascii_whitespace() {
-            if let Ok(m) = board.parse_move(m_str)
-                && board.make_move(m).is_err() {eprintln!("Invalid move!")}
-            else {
-                eprintln!("Invalid move!")
+            let result = board.parse_move(m_str);
+            if let Ok(m) = result && board.make_move(m).is_err() {
+                eprintln!("Illegal Move! {m}");
+                return;
             } 
         }
+    }
 
-        println!("{board}");
+    println!("{board}");
+}
+
+pub fn go(args: &str, board: &mut Board) {
+    if args.trim().is_empty() {
+        eprintln!("Need to provide a valid argument!");
+        return
+    }
+
+    let (command, args) = args.split_once(" ").unwrap_or((args, ""));
+    
+    match command.trim() {
+        "depth" => {
+            println!("{}", args.trim().parse::<u8>().unwrap());
+        }
+        _=> eprintln!("Not a valid go argument!")
     }
 }
 
 pub fn uci() {
-
+    println!("id name JustBot 1.0");
+    println!("id author Hasan Fakih");
+    println!("uciok");
 }
 
 #[cfg(test)]
