@@ -1,4 +1,4 @@
-use crate::board::{Board, Piece, Side, Square, moves::MoveList};
+use crate::board::{Board, Piece, Side, Square};
 
 pub const PAWN_TABLE: [i32; 64] = [
  0,  0,  0,  0,  0,  0,  0,  0,
@@ -105,15 +105,16 @@ impl Board {
         - self.board_state.piece_square_value[side.other() as usize]
     }
 
-    pub fn is_checkmated(&mut self, move_list: MoveList) -> bool {
+    pub fn has_legal_move(&mut self) -> bool {
+        let move_list = self.generate_all_moves();
         for m in move_list.iter() {
             if self.make_move(*m).is_ok() {
                 self.unmake_move();
-                return false;
+                return true;
             }
         }
 
-        true
+        false
     }
 }
 

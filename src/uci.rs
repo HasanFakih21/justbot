@@ -110,7 +110,7 @@ pub fn go(args: &str, board: &mut Board) {
         },
         _=> {
             //eprintln!("Not a valid go argument!")
-            let best_move = best_move(6, board);
+            let best_move = best_move(5, board);
             if let Some(m) = best_move {println!("bestmove {m}")}
         }
     }
