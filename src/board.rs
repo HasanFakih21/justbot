@@ -115,6 +115,26 @@ impl Board {
         self.board_state.piece_square_value[side as usize] -= self.get_piece_square_score(piece, square, side);
     }
 
+    pub fn get_piece_attack(&self, side: Side, square: Square, piece: Piece) -> BitBoard {
+        match piece {
+            Piece::Pawn   => self.get_pawn_attacks(square, side),
+            Piece::Knight => self.get_knight_attacks(square),
+            Piece::Bishop => self.get_bishop_attacks(square, self.get_all_occupancy()),
+            Piece::Rook   => self.get_bishop_attacks(square, self.get_all_occupancy()),
+            Piece::Queen  => self.get_queen_attacks(square, self.get_all_occupancy()),
+            Piece::King   => self.get_king_attacks(square),
+        }
+    }
+
+    pub fn get_all_attacks(&self, side: Side) -> BitBoard {
+        let mut attacks = BitBoard(0);
+        for (i, e) in self.board_state.board_pieces[side as usize].iter().enumerate() {
+            e.iter().for_each(|s| attacks |= self.get_piece_attack(side, s, Piece::from(i)));
+        }
+
+        attacks & !self.board_state.board_occupancies[side as usize]
+    }
+
     pub fn init_leaping_attacks(&mut self) {
         for i in 0..64 {
             let square = Square::from(i);
@@ -219,7 +239,7 @@ impl Display for Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::constants::STARTING_FEN;
+    use crate::board::{constants::STARTING_FEN, moves::Move};
     use super::*;
 
     #[test]
@@ -276,5 +296,14 @@ mod tests {
     fn test_full_board_print() {
         let board = Board::new();
         println!("{board}");
+    }
+
+    #[test]
+    fn test_get_all_attacks() {
+        let mut board = Board::from_fen(STARTING_FEN);
+        let m = Move::new(Square::E2, Square::E4, moves::MoveKind::DoublePawn);
+        let _ = board.make_move(m);
+        println!("{board}");
+        board.get_all_attacks(Side::White).print_board();
     }
 }
