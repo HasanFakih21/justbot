@@ -1,8 +1,8 @@
-use crate::board::{Board, moves::Move};
+use crate::board::{Board, moves::{Move, MoveList}};
 
-pub fn best_move(depth: usize, board: &mut Board) -> Option<Move> { 
+pub fn best_move(depth: usize, board: &mut Board) -> Option<(Move, i32)> { 
     let mut max = -10000;
-    let mut best_move: Option<Move> = None;
+    let mut best_move: Option<(Move, i32)> = None;
 
     for m in board.generate_all_moves().iter() {
         if board.make_move(*m).is_ok() {
@@ -11,7 +11,7 @@ pub fn best_move(depth: usize, board: &mut Board) -> Option<Move> {
             println!("{m}: {score}");
             if score >= max {
                 max = score;
-                best_move = Some(*m);
+                best_move = Some((*m, score));
             }
         }
     }
@@ -21,12 +21,14 @@ pub fn best_move(depth: usize, board: &mut Board) -> Option<Move> {
 
 pub fn negamax(depth: usize, board: &mut Board, mut alpha: i32, beta: i32) -> i32 {
     if depth == 0 {
-        return quiesce(board, alpha, beta);
+        return board.evaluate();
     }
 
+    let mut legal_moves = 0;
     let mut max = -10000;
     for m in board.generate_all_moves().iter() {
         if board.make_move(*m).is_ok() {
+            legal_moves += 1;
             let score = -negamax(depth - 1, board, -beta, -alpha);
             board.unmake_move();
             if score > max {
@@ -37,7 +39,23 @@ pub fn negamax(depth: usize, board: &mut Board, mut alpha: i32, beta: i32) -> i3
         }
     }
 
+    if legal_moves == 0 {
+        if board.is_king_in_attack(board.board_state.side_to_move) {
+            return -9000 - depth as i32; 
+        } else {
+            return 0;
+        }
+    }
+
     max
+}
+
+pub fn mvv_lva(board: &mut Board) -> MoveList {
+    let move_list = board.generate_all_moves();
+    //let attack_mask = board.get
+    
+
+    move_list
 }
 
 pub fn quiesce(board: &mut Board, mut alpha: i32, beta: i32) -> i32 {
@@ -74,7 +92,7 @@ mod tests {
         let mut board = Board::from_fen(STARTING_FEN); 
         let best_move = best_move(5, &mut board);
         if let Some(m) = best_move {
-            println!("Best move: {m}");
+            println!("Best move: {}", m.0);
         }
     }
 }
