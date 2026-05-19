@@ -131,10 +131,10 @@ mod tests {
         assert_eq!(-100, board.get_material_evaluation());
 
         board.remove_piece(Side::Black, Piece::Rook, Square::H8);
-        assert_eq!(425, board.get_material_evaluation());
+        assert_eq!(400, board.get_material_evaluation());
 
         board.place_piece(Side::Black, Piece::Queen, Square::E5);
-        assert_eq!(-575, board.get_material_evaluation());
+        assert_eq!(-500, board.get_material_evaluation());
     }
 
     #[test]
