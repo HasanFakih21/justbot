@@ -1,8 +1,8 @@
 use std::{cmp::Reverse, time::Instant};
 
-use crate::board::{Board, Square, moves::{Move, MoveKind, MoveList}};
+use crate::{board::{Board, Square, moves::{Move, MoveKind, MoveList}}, transposition::{Entry, NodeType}};
 
-pub fn best_move(depth: usize, board: &mut Board) -> Option<(Move, i32)> { 
+pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> { 
     let mut max = -10000;
     let mut best_move: Option<(Move, i32)> = None;
     let mut total_nodes = 1;
@@ -25,6 +25,7 @@ pub fn best_move(depth: usize, board: &mut Board) -> Option<(Move, i32)> {
         }
     }
 
+    board.tt.add_entry(Entry::new(board.board_state.hash, best_move.unwrap().0, best_move.unwrap().1, NodeType::PV), board.board_state.hash);
     best_move
 }
 
@@ -109,12 +110,12 @@ pub fn mvv_lva(board: &mut Board) -> MoveList {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board::{Board, Square, constants::STARTING_FEN, moves::{Move, MoveKind}}, search::{best_move, mvv_lva}};
+    use crate::{board::{Board, Square, constants::STARTING_FEN, moves::{Move, MoveKind}}, search::{search, mvv_lva}};
 
     #[test]
     fn test_negamax() {
         let mut board = Board::from_fen(STARTING_FEN); 
-        let best_move = best_move(5, &mut board);
+        let best_move = search(5, &mut board);
         if let Some(m) = best_move {
             println!("Best move: {}", m.0);
         }
