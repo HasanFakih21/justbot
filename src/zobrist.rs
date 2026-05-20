@@ -1,6 +1,4 @@
-use std::{array, sync::Mutex};
-
-use crate::{board::{CastlingRights, Piece, Side, Square}, magics::get_random_u64_num};
+use crate::board::{CastlingRights, Piece, Side, Square};
 
 
 #[derive(Debug)]
@@ -29,22 +27,55 @@ impl Zobrist {
     }
 }
 
-pub static ZOBRIST: Mutex<Zobrist> = {
-    Mutex::new(Zobrist {
-        pieces: [[0; 64]; 12], //Number for each piece on each square 12 pieces 64 squares 
-        side: 0, //Number to indicate the side to move is black
-        castling: [0; 16], //Castling rights 2^4 aka all possible castling combinations.
-        enpassant: [0; 8], //File of valid en-passant square
-    })
-};
+pub const fn pseudo_rand(state: &mut u64) -> u64 {
+    const INCREMENT: u64 = 0x9E3779B97F4A7C15;
+    const MULT1: u64 = 0xBF58476D1CE4E5B9;
+    const MULT2: u64 = 0x94D049BB133111EB;
 
-pub fn init_zobrist_nums() {
-    let mut zobrist = ZOBRIST.lock().unwrap();
-    zobrist.pieces.iter_mut().for_each(|e| *e = array::from_fn(|_| get_random_u64_num()));
-    zobrist.side = get_random_u64_num();
-    zobrist.castling = array::from_fn(|_| get_random_u64_num());
-    zobrist.enpassant = array::from_fn(|_| get_random_u64_num());
+    *state = state.wrapping_add(INCREMENT);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(MULT1); 
+    z = (z ^ (z >> 27)).wrapping_mul(MULT2); 
+    z ^ (z >> 31)
 }
+
+pub const ZOBRIST: Zobrist = { 
+    const SEED: u64 = 0xDEE4BD7D_B659CAD9u64;
+    let mut state = SEED;
+
+    let mut pieces = [[0; 64]; 12]; 
+    let mut x = 0;
+    while x < 12 {
+        let mut y = 0;
+        while y < 64 {
+            pieces[x][y] = pseudo_rand(&mut state);
+            y += 1;
+        }
+        x += 1;
+    } 
+
+    let side = pseudo_rand(&mut state);
+    let mut castling = [0; 16]; 
+    let mut x = 0;
+    while x < 16 {
+        castling[x] = pseudo_rand(&mut state);
+        x += 1;
+    }
+
+    let mut enpassant = [0; 8];
+    let mut x = 0;
+    while x < 8 {
+        enpassant[x] = pseudo_rand(&mut state);
+        x += 1;
+    }
+
+    Zobrist {
+        pieces, //Number for each piece on each square 12 pieces 64 squares 
+        side, //Number to indicate the side to move is black
+        castling, //Castling rights 2^4 aka all possible castling combinations.
+        enpassant, //File of valid en-passant square
+    }
+};
 
 #[cfg(test)]
 mod tests {
@@ -53,8 +84,7 @@ mod tests {
 
     #[test]
     fn test_zobrist() {
-        init_zobrist_nums();
-        let zobrist = ZOBRIST.lock().unwrap();
+        let zobrist = ZOBRIST;
         println!("{:?}", zobrist);
 
         //want to check if every number is unique
