@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::{board::bitboard::BitBoard, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}, transposition::TranspositionTable, zobrist::init_zobrist_nums};
+use crate::{board::bitboard::BitBoard, magics::{BISHOP_MAGIC_NUMBERS, ROOK_MAGIC_NUMBERS, get_magic_index}, occupancy::{BISHOP_OCCUPANCY_BIT_COUNTS, ROOK_OCCUPANCY_BIT_COUNTS, set_occupancy}, zobrist::init_zobrist_nums};
 pub use crate::attacks::*;
 pub use squares::*;
 pub use pieces::*;
@@ -24,7 +24,6 @@ pub struct BoardState {
     pub castling_rights: CastlingRights,
     pub material_value: [i32; 2],
     pub piece_square_value: [i32; 2],
-    pub transposition_table: TranspositionTable,
 }
 
 impl BoardState {
@@ -38,7 +37,6 @@ impl BoardState {
             castling_rights: CastlingRights::new(),
             material_value: [0; 2],
             piece_square_value: [0; 2],
-            transposition_table: TranspositionTable::new(),
         }
     }
 }
