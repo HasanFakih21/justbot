@@ -50,7 +50,7 @@ impl Piece {
             Self::Bishop => 330,
             Self::Rook   => 500,
             Self::Queen  => 900,
-            Self::King   => 200000,
+            Self::King   => 0,
         }
     }
 }
