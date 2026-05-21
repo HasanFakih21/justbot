@@ -1,37 +1,78 @@
-use std::{fmt::Display, slice::{Iter, IterMut}};
-use std::vec::IntoIter;
+use std::{fmt::Display, mem::{self, MaybeUninit}};
 
 use crate::types::{Piece, Square};
 
-#[derive(Default, Debug, Clone)]
-pub struct MoveList(pub Vec <Move>);
+#[derive(Debug, Clone)]
+pub struct MoveList {
+    inner: [MaybeUninit<Move>; 256],
+    len: usize,
+}
 
 impl MoveList {
     pub fn new() -> Self {
-        MoveList(Vec::new())
+        Self {
+            inner: [mem::MaybeUninit::uninit(); 256],
+            len: 0,
+        }
     }
 
-    pub fn add(&mut self, m: Move) {
-        self.0.push(m);
+    pub fn push(&mut self, m: Move) {
+        self.inner[self.len].write(m);
+        self.len += 1;
     }
 
-    pub fn iter(&self) -> Iter<'_, Move> {
-        self.0.iter()
+    pub fn pop(&mut self) -> Option<Move> {
+        if self.len == 0 { None }
+        else {
+            let e = unsafe{Some(self.inner[self.len].assume_init())}; 
+            self.len -= 1;
+            e
+        }
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, Move> {
-        self.0.iter_mut()
+    pub fn len(&self) -> usize {
+        self.len
     }
 
-    pub fn into_iter(&self) -> IntoIter<Move> {
-        self.0.clone().into_iter()
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, Move> {
+        unsafe {self.inner[..self.len].assume_init_ref().iter()}
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Move> {
+        unsafe {self.inner[..self.len].assume_init_mut().iter_mut()}
     }
 }
 
 impl FromIterator<Move> for MoveList {
     fn from_iter<T: IntoIterator<Item = Move>>(iter: T) -> Self {
-        MoveList(iter.into_iter().collect())
+        let mut ml = MoveList::new();
+        for e in iter {
+            ml.push(e);
+        }
+
+        ml
     } 
+}
+
+impl Default for MoveList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Display for MoveList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for m in self.iter() {
+            output = format!("{output}{m}, ");
+        }
+
+        write!(f, "{output}")
+    }
 }
 
 //12 bits for to and from square and 4 bits for move type
