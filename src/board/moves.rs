@@ -153,7 +153,7 @@ impl MoveKind {
 
     pub const fn is_capture(&self) -> bool {
         use MoveKind::*;
-        matches!(self, Capture | NPromCapture | BPromCapture | RPromCapture | QPromCapture)
+        matches!(self, Capture | NPromCapture | BPromCapture | RPromCapture | QPromCapture | EnPassant)
     }
 }
 

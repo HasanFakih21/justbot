@@ -65,7 +65,7 @@ impl Castling {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct CastlingRights(u8);
+pub struct CastlingRights(pub u8);
 
 impl CastlingRights {
     pub fn new() -> Self {

@@ -1,4 +1,4 @@
-use crate::board::{Board, Castling, Piece, Side, Square};
+use crate::{board::{Board, Castling, Piece, Side, Square}, zobrist::ZOBRIST};
 
 //Starting Position: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //[pieces] [turn to move] [castling rights] [enpassant] [halfmove clock] [fullmove clock]
@@ -8,10 +8,9 @@ impl Board {
     pub fn from_fen(fen_string: &str) -> Self {
         let mut board = Board::new();
         let mut fen = fen_string.split(" ");
-
         let piece_string = fen.next().unwrap();
-
         let ranks = piece_string.split('/');
+
         for (rank, r_str) in ranks.rev().enumerate() {
             let mut file: usize = 0;
             for p in r_str.chars() {
@@ -21,7 +20,9 @@ impl Board {
                 }
 
                 let side = if p.is_ascii_uppercase() {Side::White} else {Side::Black};
-                board.place_piece(side, Piece::from_char(p).unwrap(), Square::from_rank_and_file(rank, file));
+                let piece = Piece::from_char(p).unwrap();
+                let square = Square::from_rank_and_file(rank, file);
+                board.place_piece(side, piece, square);
 
                 file += 1;
             }
@@ -48,6 +49,23 @@ impl Board {
             board.board_state.enpassant = Some(square);
         }
 
+        if let Some(half_move) = fen.next() && let Ok(i) = half_move.parse::<u8>() {
+            board.board_state.half_move_clock = i;
+        }
+
+        if let Some(full_move) = fen.next() && let Ok(i) = full_move.parse::<usize>() {
+            board.board_state.full_move = i;
+        }
+
+        if board.board_state.side_to_move == Side::Black {
+             board.board_state.hash ^= ZOBRIST.get_side_num()
+        }
+
+        board.board_state.hash ^= ZOBRIST.get_castling_num(board.board_state.castling_rights);
+        if let Some(square) = board.board_state.enpassant {
+             board.board_state.hash ^= ZOBRIST.get_enpassant_num(square);
+        }
+
         board
     }
 }
@@ -61,9 +79,6 @@ mod tests {
     fn test_from_fen() {
         let board = Board::from_fen(STARTING_FEN);
         println!("{board}");
-
-        let board2 = Board::from_fen("8/8/8/8/8/8/8/8 w - - ");
-        println!("{board2}");
 
         let board3 = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         println!("{board3}");
@@ -79,5 +94,7 @@ mod tests {
 
         let board6 = Board::from_fen("rnb1kbnr/pp1q1pp1/4p2p/2p1N3/3Pp3/2P5/PP2BPPP/RNBQK1R1 b Qkq - 1 7");
         println!("{board6}");
+        println!("Half move: {}", board6.board_state.half_move_clock);
+        println!("Full move: {}", board6.board_state.full_move);
     }
 }
