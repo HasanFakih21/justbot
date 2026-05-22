@@ -11,8 +11,8 @@ impl Board {
         let half_moves = self.board_state.half_move_clock as usize;
         let mut count = 0;
 
-        let last_halfmove_ply = self.board_state.game_history.len() - half_moves;
-        for position in self.board_state.game_history[last_halfmove_ply..].iter() {
+        let last_halfmove_ply = self.game_history.len() - half_moves;
+        for position in self.game_history[last_halfmove_ply..].iter() {
             if self.board_state.hash == *position {
                 count += 1
             }
@@ -45,7 +45,7 @@ pub fn search_runner(
     best_move
 }
 
-pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> {
+pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root Search
     let mut max = -10000;
     let mut best_move: Option<(Move, i32)> = None;
     let mut total_nodes = 1;
@@ -88,7 +88,7 @@ pub fn negamax(
     ply: u8,
 ) -> i32 {
     if depth == 0 {
-        return quiesce(board, alpha, beta, nodes, ply);
+        return quiesce(board, alpha, beta, nodes, ply); //Horizon Node
     }
 
     *nodes += 1;
@@ -102,7 +102,7 @@ pub fn negamax(
     }
 
     let mut legal_moves = 0;
-    let mut max = -10000;
+    let mut best_score = -10000;
     let mut best_move: Option<Move> = None;
 
     for m in order_moves(board).iter() {
@@ -114,22 +114,24 @@ pub fn negamax(
                 score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1);
             } else {
                 score = -negamax(depth - 1, board, -alpha - 1, -alpha, nodes, ply + 1);
-                if score > alpha && beta - alpha > 1 {
+                if score > alpha && score < beta {
                     score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
                 }
             }
 
             board.unmake_move();
-            if score > max {
-                max = score;
+
+            if score > alpha {
+                alpha = score;
+            }
+
+            if score > best_score {
+                best_score = score;
                 best_move = Some(*m);
-                if score > alpha {
-                    alpha = score;
-                }
             }
 
             if score >= beta {
-                return max;
+                return best_score;
             }
         }
     }
@@ -145,10 +147,10 @@ pub fn negamax(
     if let Some(m) = best_move {
         board
             .tt
-            .add_entry(m, max, NodeType::PV, board.board_state.hash);
+            .add_entry(m, best_score, NodeType::PV, board.board_state.hash);
     }
 
-    max
+    best_score
 }
 
 pub fn quiesce(board: &mut Board, mut alpha: i32, beta: i32, nodes: &mut i32, _ply: u8) -> i32 {
@@ -310,7 +312,7 @@ mod tests {
         let (m, score) = search(3, &mut board).unwrap();
         println!(
             "{:?}\nCurrent Hash: {}",
-            board.board_state.game_history, board.board_state.hash
+            board.game_history, board.board_state.hash
         );
         println!("Repetions counted: {}", board.detect_repetitions());
         assert_eq!(score, 0);

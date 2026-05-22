@@ -172,7 +172,7 @@ impl Board {
             self.board_state.full_move += 1
         }
         self.board_state.hash ^= ZOBRIST.get_castling_num(self.board_state.castling_rights);
-        self.board_state.game_history.push(self.board_state.hash);
+        self.game_history.push(self.board_state.hash);
 
         if self.is_king_in_attack(side) {
             self.unmake_move();
@@ -186,6 +186,8 @@ impl Board {
         if let Some(prev_state) = self.state_stack.pop() {
             self.board_state = prev_state;
         }
+
+        self.game_history.pop();
     }
 
     pub fn copy_state(&mut self) {

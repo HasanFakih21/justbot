@@ -20,7 +20,6 @@ pub struct BoardState {
     pub half_move_clock: u8,
     pub full_move: usize,
     pub hash: u64,
-    pub game_history: Vec<u64>,
 }
 
 impl BoardState {
@@ -37,7 +36,6 @@ impl BoardState {
             half_move_clock: 0,
             full_move: 0,
             hash: 0,
-            game_history: Vec::new(),
         }
     }
 }
@@ -61,6 +59,7 @@ pub struct Board {
     pub board_state: BoardState,
     pub state_stack: Vec<BoardState>,
     pub tt: TranspositionTable,
+    pub game_history: Vec<u64>,
 }
 
 impl Default for Board {
@@ -85,6 +84,7 @@ impl Board {
             state_stack: Vec::new(),
             board_state: BoardState::new(),
             tt: TranspositionTable::new(),
+            game_history: Vec::new(),
         };
 
         b.init_leaping_attacks();
