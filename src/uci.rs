@@ -148,7 +148,7 @@ pub fn go(args: &str, board: &mut Board) {
             }
         }
         "movetime" => {
-            let time = args.trim().parse::<u128>().unwrap(); 
+            let time = args.trim().parse::<u128>().unwrap();
             let best_move = search_runner(board, SearchKind::Exact(time));
             if let Some((m, i)) = best_move {
                 println!("info score cp {i}");

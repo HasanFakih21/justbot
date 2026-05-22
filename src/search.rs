@@ -23,10 +23,7 @@ impl Board {
     }
 }
 
-pub fn search_runner(
-    board: &mut Board,
-    kind: SearchKind,
-) -> Option<(Move, i32)> {
+pub fn search_runner(board: &mut Board, kind: SearchKind) -> Option<(Move, i32)> {
     let mut depth = 1;
     let mut data = SearchData::new(kind);
 
@@ -53,7 +50,8 @@ pub fn search_runner(
     best_move
 }
 
-pub fn search(data: &mut SearchData, depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root Search
+pub fn search(data: &mut SearchData, depth: usize, board: &mut Board) -> Option<(Move, i32)> {
+    //Root Search
     let mut best_score = -10000;
     let mut best_move: Option<(Move, i32)> = None;
     let mut total_nodes = 1;
@@ -119,12 +117,13 @@ pub fn negamax(
             legal_moves += 1;
             let mut score;
 
-            if legal_moves == 1 { //First Move
+            if legal_moves == 1 {
+                //First Move
                 score = -negamax(data, depth - 1, board, -beta, -alpha, nodes, ply + 1);
             } else {
                 score = -negamax(data, depth - 1, board, -alpha - 1, -alpha, nodes, ply + 1);
                 if score > alpha && score < beta {
-                    score = -negamax(data,depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
+                    score = -negamax(data, depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
                 }
             }
 
