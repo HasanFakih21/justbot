@@ -108,8 +108,17 @@ pub fn negamax(
     for m in order_moves(board).iter() {
         if board.make_move(*m).is_ok() {
             legal_moves += 1;
+            let mut score;
 
-            let score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1);
+            if legal_moves == 1 { //First Move
+                score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1);
+            } else {
+                score = -negamax(depth - 1, board, -alpha - 1, -alpha, nodes, ply + 1);
+                if score > alpha && beta - alpha > 1 {
+                    score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
+                }
+            }
+
             board.unmake_move();
             if score > max {
                 max = score;
@@ -118,6 +127,7 @@ pub fn negamax(
                     alpha = score;
                 }
             }
+
             if score >= beta {
                 return max;
             }
