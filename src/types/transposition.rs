@@ -82,13 +82,14 @@ impl Default for TranspositionTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board::Board, search::search};
+    use crate::{board::Board, search::{data::SearchData, search}};
 
     #[test]
     fn test_transposition_table() {
         let mut board =
             Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
-        if let Some((best_move, score)) = search(3, &mut board) {
+            let mut data = SearchData::default();
+        if let Some((best_move, score)) = search(&mut data, 3, &mut board) {
             let hash = board.board_state.hash;
             let entry = board.tt.get_entry(hash);
 
@@ -99,7 +100,8 @@ mod tests {
             assert_eq!(score, s);
 
             let _ = board.make_move(best_move);
-            let _ = search(2, &mut board);
+            let mut data = SearchData::default();
+            let _ = search(&mut data, 2, &mut board);
 
             let entry = board.tt.get_entry(hash);
 

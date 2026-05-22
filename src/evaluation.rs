@@ -163,6 +163,7 @@ pub const EG_TABLE_ARRAY: [[i32; 64]; 6] = [
     EG_QUEEN_TABLE,
     EG_KING_TABLE,
 ];
+
 pub const MAX_MATERIAL_VALUE: i32 = 8000;
 
 impl Board {

@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::board::Board;
 use crate::board::movegen::MoveGenKind;
+use crate::search::data::{SearchData, SearchKind};
 use crate::search::{search, search_runner};
 use crate::types::*;
 
@@ -90,8 +91,7 @@ pub fn position(args: &str, board: &mut Board) {
             }
         }
     }
-
-    println!("{board}");
+    //println!("{board}");
 }
 
 pub fn go(args: &str, board: &mut Board) {
@@ -104,7 +104,9 @@ pub fn go(args: &str, board: &mut Board) {
 
     match command.trim() {
         "depth" => {
-            let best_move = search(args.trim().parse::<usize>().unwrap(), board);
+            let depth = args.trim().parse::<usize>().unwrap();
+            let mut data = SearchData::new(SearchKind::Depth(depth));
+            let best_move = search(&mut data, depth, board);
             if let Some((m, i)) = best_move {
                 println!("info score cp {i}");
                 println!("bestmove {m}");
@@ -125,7 +127,24 @@ pub fn go(args: &str, board: &mut Board) {
         }
         "wtime" => {
             //Example: go wtime 900000 btime 900000 winc 0 binc 0
-            let best_move = search_runner(board, 10, 10);
+            let args: Vec<&str> = args.split_ascii_whitespace().collect();
+            let times: Vec<u128> = args.iter().filter_map(|e| e.parse::<u128>().ok()).collect();
+
+            println!("{:?}", times);
+
+            let best_move = match board.board_state.side_to_move {
+                Side::White => search_runner(board, SearchKind::Normal(times[0], times[2])),
+                Side::Black => search_runner(board, SearchKind::Normal(times[1], times[3])),
+            };
+
+            if let Some((m, i)) = best_move {
+                println!("info score cp {i}");
+                println!("bestmove {m}");
+            }
+        }
+        "movetime" => {
+            let time = args.trim().parse::<u128>().unwrap(); 
+            let best_move = search_runner(board, SearchKind::Exact(time));
             if let Some((m, i)) = best_move {
                 println!("info score cp {i}");
                 println!("bestmove {m}");
@@ -133,7 +152,7 @@ pub fn go(args: &str, board: &mut Board) {
         }
         _ => {
             //eprintln!("Not a valid go argument!")
-            let best_move = search_runner(board, 10, 10);
+            let best_move = search_runner(board, SearchKind::Exact(5000));
             if let Some((m, i)) = best_move {
                 println!("info score cp {i}");
                 println!("bestmove {m}");
@@ -159,5 +178,11 @@ pub mod tests {
         if let Ok(m) = board.parse_move("e2e4") {
             println!("bestmove {m}");
         }
+    }
+
+    #[test]
+    fn test_parse_times() {
+        let mut board = Board::from_fen(STARTING_FEN);
+        go("wtime 5000 btime 5000 winc 0 binc 0", &mut board);
     }
 }

@@ -2,9 +2,10 @@ use std::{cmp::Reverse, time::Instant};
 
 use crate::board::Board;
 use crate::board::movegen::MoveGenKind;
+use crate::search::data::{SearchData, SearchKind};
 use crate::types::*;
 
-pub const MAX_TIME: f32 = 20.0;
+pub mod data;
 
 impl Board {
     pub fn detect_repetitions(&self) -> usize {
@@ -24,29 +25,36 @@ impl Board {
 
 pub fn search_runner(
     board: &mut Board,
-    _time_left: usize,
-    _increment: usize,
+    kind: SearchKind,
 ) -> Option<(Move, i32)> {
-    //let time = Instant::now(); //simple time managment strategy: remaining time/20 + increment/2
     let mut depth = 1;
-    let mut best_move;
+    let mut data = SearchData::new(kind);
 
+    //Initialize with move from first depth
+    println!("info depth {depth}");
+    let mut best_move = search(&mut data, depth, board);
+    depth += 1;
+
+    //Iterative Deepening
     loop {
         println!("info depth {depth}");
-        best_move = search(depth, board);
+        let deeper_move = search(&mut data, depth, board);
         depth += 1;
 
-        //if time.elapsed().as_secs_f32() > MAX_TIME {break;}
-        if depth > 6 {
+        if data.over_limit() {
+            println!("Searched for {}ms", data.elapsed().as_millis());
+            println!("Time limit was {}", data.get_time_limit());
             break;
         }
+
+        best_move = deeper_move;
     }
 
     best_move
 }
 
-pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root Search
-    let mut max = -10000;
+pub fn search(data: &mut SearchData, depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root Search
+    let mut best_score = -10000;
     let mut best_move: Option<(Move, i32)> = None;
     let mut total_nodes = 1;
     let ply = 1;
@@ -56,15 +64,15 @@ pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root S
         if board.make_move(*m).is_ok() {
             let mut nodes = 0;
 
-            let score = -negamax(depth - 1, board, -10000, 10000, &mut nodes, ply + 1);
+            let score = -negamax(data, depth - 1, board, -10000, 10000, &mut nodes, ply + 1);
             total_nodes += nodes;
             println!("info nodes {total_nodes}");
             let nps = total_nodes as f64 / clock.elapsed().as_secs_f64();
             println!("info nps {:.0}", nps);
             board.unmake_move();
             println!("{m}: {score}");
-            if score >= max {
-                max = score;
+            if score >= best_score {
+                best_score = score;
                 best_move = Some((*m, score));
             }
         }
@@ -80,6 +88,7 @@ pub fn search(depth: usize, board: &mut Board) -> Option<(Move, i32)> { //Root S
 }
 
 pub fn negamax(
+    data: &mut SearchData,
     depth: usize,
     board: &mut Board,
     mut alpha: i32,
@@ -111,11 +120,11 @@ pub fn negamax(
             let mut score;
 
             if legal_moves == 1 { //First Move
-                score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1);
+                score = -negamax(data, depth - 1, board, -beta, -alpha, nodes, ply + 1);
             } else {
-                score = -negamax(depth - 1, board, -alpha - 1, -alpha, nodes, ply + 1);
+                score = -negamax(data, depth - 1, board, -alpha - 1, -alpha, nodes, ply + 1);
                 if score > alpha && score < beta {
-                    score = -negamax(depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
+                    score = -negamax(data,depth - 1, board, -beta, -alpha, nodes, ply + 1); //We want to search again
                 }
             }
 
@@ -130,7 +139,7 @@ pub fn negamax(
                 best_move = Some(*m);
             }
 
-            if score >= beta {
+            if score >= beta || data.over_limit() {
                 return best_score;
             }
         }
@@ -250,7 +259,8 @@ mod tests {
     #[test]
     fn test_search() {
         let mut board = Board::from_fen(STARTING_FEN);
-        let best_move = search(5, &mut board);
+        let mut data = SearchData::default();
+        let best_move = search(&mut data, 5, &mut board);
         if let Some(m) = best_move {
             println!("Best move: {}", m.0);
         }
@@ -309,7 +319,8 @@ mod tests {
         let _ = board.make_move(Move::new(C2, C1, QuietMove));
         let _ = board.make_move(Move::new(E4, F4, QuietMove));
 
-        let (m, score) = search(3, &mut board).unwrap();
+        let mut data = SearchData::default();
+        let (m, score) = search(&mut data, 3, &mut board).unwrap();
         println!(
             "{:?}\nCurrent Hash: {}",
             board.game_history, board.board_state.hash
@@ -321,9 +332,10 @@ mod tests {
 
     #[test]
     fn test_mate_in_one() {
+        let mut data = SearchData::default();
         let mut board =
             Board::from_fen("r1b4r/p1p1q3/1bppk3/4pp2/3PP1Q1/2P1R3/PP3PPP/RN4K1 w - - 0 18");
-        let best_move = search(1, &mut board);
+        let best_move = search(&mut data, 1, &mut board);
         println!("Best Move: {}", best_move.unwrap().0);
         assert_eq!(
             Move::new(Square::G4, Square::F5, MoveKind::Capture),
@@ -333,8 +345,9 @@ mod tests {
 
     #[test]
     fn test_mate_in_four() {
+        let mut data = SearchData::default();
         let mut board = Board::from_fen("6k1/5pp1/5n1p/8/5P1q/2RQ3P/B5PK/8 b - - 0 36");
-        let best_move = search(4, &mut board);
+        let best_move = search(&mut data, 4, &mut board);
         println!("Best Move: {}", best_move.unwrap().0);
         assert_eq!(
             Move::new(Square::F6, Square::G4, MoveKind::QuietMove),
