@@ -79,8 +79,9 @@ pub fn search(data: &mut SearchData, depth: usize, board: &mut Board) -> Option<
     board.tt.add_entry(
         best_move.unwrap().0,
         best_move.unwrap().1,
-        NodeType::PV,
+        Bound::Exact,
         board.board_state.hash,
+        ply
     );
     best_move
 }
@@ -111,6 +112,7 @@ pub fn negamax(
     let mut legal_moves = 0;
     let mut best_score = -10000;
     let mut best_move: Option<Move> = None;
+    let mut bound = Bound::Upper; //Fail-high means score is atleast this good so lower-bound/Fail-low means the score is an upper bound
 
     for m in order_moves(board).iter() {
         if board.make_move(*m).is_ok() {
@@ -130,6 +132,7 @@ pub fn negamax(
             board.unmake_move();
 
             if score > alpha {
+                bound = Bound::Exact;
                 alpha = score;
             }
 
@@ -139,6 +142,11 @@ pub fn negamax(
             }
 
             if score >= beta || data.over_limit() {
+                if let Some(m) = best_move {
+                    board
+                        .tt
+                        .add_entry(m, best_score, Bound::Upper, board.board_state.hash, ply);
+                }
                 return best_score;
             }
         }
@@ -155,13 +163,13 @@ pub fn negamax(
     if let Some(m) = best_move {
         board
             .tt
-            .add_entry(m, best_score, NodeType::PV, board.board_state.hash);
+            .add_entry(m, best_score, bound, board.board_state.hash, ply);
     }
 
     best_score
 }
 
-pub fn quiesce(board: &mut Board, mut alpha: i32, beta: i32, nodes: &mut i32, _ply: u8) -> i32 {
+pub fn quiesce(board: &mut Board, mut alpha: i32, beta: i32, nodes: &mut i32, ply: u8) -> i32 {
     let static_eval = board.evaluate();
     *nodes += 1;
 
@@ -173,32 +181,48 @@ pub fn quiesce(board: &mut Board, mut alpha: i32, beta: i32, nodes: &mut i32, _p
         }
     }
 
-    let mut best_value = static_eval;
-    if best_value >= beta {
-        return best_value;
+    let mut best_score = static_eval;
+    let mut bound = Bound::Upper;
+    let mut best_move: Option<Move> = None;
+
+    if best_score >= beta {
+        return best_score;
     }
-    if best_value > alpha {
-        alpha = best_value;
+    if best_score > alpha {
+        alpha = best_score;
     }
 
     for m in order_moves(board).iter() {
         if !m.get_kind().is_quiet() && board.make_move(*m).is_ok() {
-            let score = -quiesce(board, -beta, -alpha, nodes, _ply + 1);
+            let score = -quiesce(board, -beta, -alpha, nodes, ply + 1);
             board.unmake_move();
 
             if score >= beta {
+                if let Some(m) = best_move {
+                    board
+                        .tt
+                        .add_entry(m, best_score, Bound::Lower, board.board_state.hash, ply);
+                }
                 return score;
             }
-            if score > best_value {
-                best_value = score
+            if score > best_score {
+                best_score = score;
+                best_move = Some(*m);
             }
             if score > alpha {
-                alpha = score
+                alpha = score;
+                bound = Bound::Exact;
             }
         }
     }
 
-    best_value
+    if let Some(m) = best_move {
+        board
+            .tt
+            .add_entry(m, best_score, bound, board.board_state.hash, ply);
+    }
+
+    best_score
 }
 
 pub fn order_moves(board: &mut Board) -> MoveList {
