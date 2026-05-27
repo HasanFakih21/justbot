@@ -1,7 +1,8 @@
 <div align="center">
 <h1>JustBot Chess Engine</h1>
   
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![License: GPL-3.0](https://img.shields.io/github/license/HasanFakih21/JustBot?style=flat-square&color=blue)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![GitHub Release](https://img.shields.io/github/v/release/HasanFakih21/JustBot?include_prereleases&style=flat-square)](https://github.com/HasanFakih21/JustBot/releases)
 
 </div>
 
