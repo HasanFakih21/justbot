@@ -36,13 +36,15 @@ impl MoveList {
     }
 
     pub fn get(&self, index: usize) -> &Move {
-        debug_assert!(index < self.len); 
-        unsafe {self.inner[index].assume_init_ref()}
+        debug_assert!(index < self.len);
+        unsafe { self.inner[index].assume_init_ref() }
     }
 
     pub fn push_front(&mut self, m: Move) {
         for i in 0..self.len {
-            unsafe {self.inner[i + 1].write(self.inner[i].assume_init());}   
+            unsafe {
+                self.inner[i + 1].write(self.inner[i].assume_init());
+            }
         }
         self.len += 1;
         self.inner[0].write(m);
@@ -250,7 +252,10 @@ impl MoveKind {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{board::{Board, movegen::MoveGenKind}, types::{Move, MoveKind, STARTING_FEN, Square}};
+    use crate::{
+        board::{Board, movegen::MoveGenKind},
+        types::{Move, MoveKind, STARTING_FEN, Square},
+    };
 
     #[test]
     fn test_move_list() {

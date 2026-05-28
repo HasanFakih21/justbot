@@ -34,9 +34,9 @@ impl SearchData {
                 SearchKind::Depth(_) => 0,
                 SearchKind::Normal(remaining_time, increment) => {
                     (remaining_time / 20) + (increment / 2) //Simple time managment strategy: remaining time/20 + increment/2
-                },
+                }
                 SearchKind::Exact(thinking_time) => thinking_time, //Simple time managment strategy: remaining time/20 + increment/2
-            }, 
+            },
             pv: vec![MoveList::new(); 256],
             tt: TranspositionTable::new(),
         }
@@ -80,7 +80,7 @@ impl SearchData {
 
     pub fn add_pv_move(&mut self, m: Move, ply: usize) {
         self.pv[ply].clear();
-        self.pv[ply].push(m); 
+        self.pv[ply].push(m);
         for child_m in self.pv[ply + 1].clone().iter() {
             self.pv[ply].push(*child_m);
         }
@@ -95,13 +95,13 @@ impl SearchData {
     }
 
     pub fn set_limit(&mut self, kind: SearchKind) {
-            self.time_limit = match kind {
-                SearchKind::Depth(_) => 0,
-                SearchKind::Normal(remaining_time, increment) => {
-                    (remaining_time / 20) + (increment / 2) //Simple time managment strategy: remaining time/20 + increment/2
-                }
-                SearchKind::Exact(thinking_time) => thinking_time,
-            } 
+        self.time_limit = match kind {
+            SearchKind::Depth(_) => 0,
+            SearchKind::Normal(remaining_time, increment) => {
+                (remaining_time / 20) + (increment / 2) //Simple time managment strategy: remaining time/20 + increment/2
+            }
+            SearchKind::Exact(thinking_time) => thinking_time,
+        }
     }
 
     pub fn clear_table(&mut self) {

@@ -51,7 +51,7 @@ pub fn input_loop() {
             "ucinewgame" => {
                 board = Board::from_fen(STARTING_FEN);
                 data = SearchData::default();
-            },
+            }
             "go" => go(args, &mut board, &mut data),
             "quit" => break,
             _ => eprintln!("Not a valid command"),
@@ -110,8 +110,7 @@ pub fn go(args: &str, board: &mut Board, data: &mut SearchData) {
         "depth" => {
             let depth = args.trim().parse::<usize>().unwrap();
             let best_move = search(data, depth, board, -INFINITY, INFINITY);
-            if let Some((m, i)) = best_move {
-                println!("info score cp {i}");
+            if let Some((m, _)) = best_move {
                 println!("bestmove {m}");
             }
         }
@@ -141,13 +140,12 @@ pub fn go(args: &str, board: &mut Board, data: &mut SearchData) {
             let binc = times.get(3).unwrap_or(&0);
 
             match board.board_state.side_to_move {
-                Side::White => data.set_limit(SearchKind::Normal(*wtime, *winc)), 
+                Side::White => data.set_limit(SearchKind::Normal(*wtime, *winc)),
                 Side::Black => data.set_limit(SearchKind::Normal(*btime, *binc)),
             };
 
             let best_move = search_runner(board, data);
-            if let Some((m, i)) = best_move {
-                println!("info score cp {i}");
+            if let Some((m, _)) = best_move {
                 println!("bestmove {m}");
             }
         }
@@ -155,16 +153,14 @@ pub fn go(args: &str, board: &mut Board, data: &mut SearchData) {
             let time = args.trim().parse::<u128>().unwrap();
             data.set_limit(SearchKind::Exact(time));
             let best_move = search_runner(board, data);
-            if let Some((m, i)) = best_move {
-                println!("info score cp {i}");
+            if let Some((m, _)) = best_move {
                 println!("bestmove {m}");
             }
         }
         _ => {
             //eprintln!("Not a valid go argument!")
             let best_move = search_runner(board, data);
-            if let Some((m, i)) = best_move {
-                println!("info score cp {i}");
+            if let Some((m, _)) = best_move {
                 println!("bestmove {m}");
             }
         }
@@ -193,6 +189,10 @@ pub mod tests {
     #[test]
     fn test_parse_times() {
         let mut board = Board::from_fen(STARTING_FEN);
-        go("wtime 5000 btime 5000 winc 0 binc 0", &mut board, &mut SearchData::default());
+        go(
+            "wtime 5000 btime 5000 winc 0 binc 0",
+            &mut board,
+            &mut SearchData::default(),
+        );
     }
 }
