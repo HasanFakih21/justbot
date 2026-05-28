@@ -6,6 +6,7 @@ use crate::search::data::SearchData;
 use crate::types::*;
 
 pub mod data;
+pub mod time;
 
 pub const FAIL_INCREMENTS: [i32; 5] = [25, 50, 150, 300, INFINITY];
 
@@ -26,17 +27,17 @@ impl Board {
 }
 
 pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, i32)> {
+    data.clear_node_count();
     data.start_time();
     data.clear_table();
     let mut depth = 1;
 
     //Initialize with move from first depth
-    println!("info depth {depth}");
-    let mut best_move = search(data, depth, board, -INFINITY, INFINITY);
+    let mut best_move = search(data, depth, board, -INFINITY, INFINITY)?;
     depth += 1;
 
     //Aspiration Window
-    let mut score = best_move.unwrap().1;
+    let mut score = best_move.1;
     let mut alpha_window = score - (100 / 4);
     let mut beta_window = score + (100 / 4);
     let mut alpha_fail = 0;
@@ -46,7 +47,7 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
     println!(
         "info depth {} time {} score cp {} nodes {} nps {} pv {}",
         depth - 1,
-        data.elapsed().as_millis(),
+        data.time.elapsed().as_millis(),
         score,
         data.get_total_nodes_searched(),
         data.nodes_per_second(),
@@ -57,8 +58,6 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
     loop {
         let deeper_move = search(data, depth, board, alpha_window, beta_window);
         if data.over_limit() {
-            println!("Searched for {}ms", data.elapsed().as_millis());
-            println!("Time limit was {}", data.get_time_limit());
             break;
         }
         let new_score = deeper_move.unwrap().1;
@@ -76,7 +75,7 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
 
         depth += 1;
 
-        best_move = deeper_move;
+        best_move = deeper_move?;
         score = new_score;
         alpha_fail = 0;
         beta_fail = 0;
@@ -85,7 +84,7 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
         println!(
             "info depth {} time {} score cp {} nodes {} nps {} pv {}",
             depth - 1,
-            data.elapsed().as_millis(),
+            data.time.elapsed().as_millis(),
             score,
             data.get_total_nodes_searched(),
             data.nodes_per_second(),
@@ -93,7 +92,7 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
         );
     }
 
-    best_move
+    Some(best_move)
 }
 
 pub fn search(
@@ -513,6 +512,7 @@ mod tests {
         let mut data = SearchData::default();
         let mut board =
             Board::from_fen("r1b4r/p1p1q3/1bppk3/4pp2/3PP1Q1/2P1R3/PP3PPP/RN4K1 w - - 0 18");
+        data.set_playing_as(board.board_state.side_to_move);
         let best_move = search(&mut data, 1, &mut board, -INFINITY, INFINITY);
         println!("Best Move: {}", best_move.unwrap().0);
         assert_eq!(
@@ -525,6 +525,7 @@ mod tests {
     fn test_mate_in_four() {
         let mut data = SearchData::default();
         let mut board = Board::from_fen("6k1/5pp1/5n1p/8/5P1q/2RQ3P/B5PK/8 b - - 0 36");
+        data.set_playing_as(board.board_state.side_to_move);
         let best_move = search(&mut data, 4, &mut board, -INFINITY, INFINITY);
         println!("Best Move: {}", best_move.unwrap().0);
         assert_eq!(
@@ -540,6 +541,9 @@ mod tests {
 
         let mut data = SearchData::default();
         let mut board = Board::from_fen("6k1/5pp1/5n1p/8/5P1q/2RQ3P/B5PK/8 b - - 0 36");
+        data.set_playing_as(board.board_state.side_to_move);
+        data.get_time_settings().btime = 1000000;
+        data.start_time();
         let best_move = search(&mut data, 7, &mut board, -INFINITY, INFINITY);
         println!("PV: {}", data.get_pv());
         let mut pv_line = MoveList::new();

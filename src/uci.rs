@@ -2,8 +2,8 @@ use std::time::Instant;
 
 use crate::board::Board;
 use crate::board::movegen::MoveGenKind;
-use crate::search::data::{SearchData, SearchKind};
-use crate::search::{search, search_runner};
+use crate::search::data::SearchData;
+use crate::search::search_runner;
 use crate::types::*;
 
 impl Board {
@@ -52,8 +52,25 @@ pub fn input_loop() {
                 board = Board::from_fen(STARTING_FEN);
                 data = SearchData::default();
             }
-            "go" => go(args, &mut board, &mut data),
+            "go" => {
+                data.set_playing_as(board.board_state.side_to_move);
+                if let Some((m, _)) = go(args, &mut board, &mut data) {
+                    println!("bestmove {m}");
+                }
+            },
             "quit" => break,
+            "perft" => {
+                if let Ok(depth) = args.trim().parse::<usize>() {
+                    let clock = Instant::now();
+                    let nodes_count = crate::perft::perft(depth, &mut board);
+                    println!(
+                        "Number of nodes: {nodes_count}\nTime: {}ms",
+                        clock.elapsed().as_millis()
+                    );
+                } else {
+                    eprintln!("Enter a valid depth!")
+                }
+            }
             "d" => println!("{board}"),
             _ => eprintln!("Not a valid command"),
         }
@@ -96,74 +113,53 @@ pub fn position(args: &str, board: &mut Board) {
             }
         }
     }
-    //println!("{board}");
 }
 
-pub fn go(args: &str, board: &mut Board, data: &mut SearchData) {
-    if args.trim().is_empty() {
-        eprintln!("Need to provide a valid argument!");
-        return;
+pub fn go(args: &str, board: &mut Board, data: &mut SearchData) -> Option<(Move, i32)> {
+    let (command, args) = args.split_once(" ").unwrap_or((args, ""));
+    if args.is_empty() {
+        return search_runner(board, data)
     }
 
-    let (command, args) = args.split_once(" ").unwrap_or((args, ""));
-
     match command.trim() {
-        "depth" => {
-            let depth = args.trim().parse::<usize>().unwrap();
-            let best_move = search(data, depth, board, -INFINITY, INFINITY);
-            if let Some((m, _)) = best_move {
-                println!("bestmove {m}");
-            }
-        }
-        "perft" => {
-            println!("{args}");
-            if let Ok(depth) = args.trim().parse::<usize>() {
-                let clock = Instant::now();
-                let nodes_count = crate::perft::perft(depth, board);
-                println!(
-                    "Number of nodes: {nodes_count}\nTime: {}ms",
-                    clock.elapsed().as_millis()
-                );
-            } else {
-                eprintln!("Enter a valid depth!")
-            }
+        "depth" => { 
+            let (depth, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().depth = depth.trim().parse().unwrap_or(0);
+            go(args, board, data) 
         }
         "wtime" => {
             //Example: go wtime 900000 btime 900000 winc 0 binc 0
-            let args: Vec<&str> = args.split_ascii_whitespace().collect();
-            let times: Vec<u128> = args.iter().filter_map(|e| e.parse::<u128>().ok()).collect();
-
-            println!("{:?}", times);
-            let wtime = times.first().unwrap_or(&300000);
-            let btime = times.get(1).unwrap_or(&300000);
-
-            let winc = times.get(2).unwrap_or(&0);
-            let binc = times.get(3).unwrap_or(&0);
-
-            match board.board_state.side_to_move {
-                Side::White => data.set_limit(SearchKind::Normal(*wtime, *winc)),
-                Side::Black => data.set_limit(SearchKind::Normal(*btime, *binc)),
-            };
-
-            let best_move = search_runner(board, data);
-            if let Some((m, _)) = best_move {
-                println!("bestmove {m}");
-            }
+            let (wtime, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().wtime = wtime.trim().parse().unwrap_or(500);
+            go(args, board, data) 
         }
-        "movetime" => {
-            let time = args.trim().parse::<u128>().unwrap();
-            data.set_limit(SearchKind::Exact(time));
-            let best_move = search_runner(board, data);
-            if let Some((m, _)) = best_move {
-                println!("bestmove {m}");
-            }
+        "btime" => {
+            let (btime, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().btime = btime.trim().parse().unwrap_or(500);
+            go(args, board, data) 
+        }
+        "winc" => {
+            let (winc, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().winc = winc.trim().parse().unwrap_or(0);
+            go(args, board, data) 
+        }
+        "binc" => {
+            let (binc, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().binc = binc.trim().parse().unwrap_or(0);
+            go(args, board, data) 
+        }
+        "movestogo" => {
+            let (movestogo, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().movestogo = movestogo.trim().parse().unwrap_or(0);
+            go(args, board, data) 
+        }
+        "movetime" => {  
+            let (movetime, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().movetime = movetime.trim().parse().unwrap_or(0);
+            go(args, board, data) 
         }
         _ => {
-            //eprintln!("Not a valid go argument!")
-            let best_move = search_runner(board, data);
-            if let Some((m, _)) = best_move {
-                println!("bestmove {m}");
-            }
+            go(args, board, data)
         }
     }
 }
@@ -195,5 +191,17 @@ pub mod tests {
             &mut board,
             &mut SearchData::default(),
         );
+    }
+
+    #[test]
+    fn test_parse_go() {
+        let mut board = Board::from_fen(STARTING_FEN);
+        let mut data = SearchData::default();
+        let bm = go(
+            "wtime 5000 btime 5000 winc 5 binc 8 movetime 100",
+            &mut board,
+            &mut data,
+        );
+        println!("{:?}\nBestmove: {}", data.get_time_settings(), bm.unwrap().0);
     }
 }
