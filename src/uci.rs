@@ -54,6 +54,7 @@ pub fn input_loop() {
             }
             "go" => go(args, &mut board, &mut data),
             "quit" => break,
+            "d" => println!("{board}"),
             _ => eprintln!("Not a valid command"),
         }
 
