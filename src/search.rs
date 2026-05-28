@@ -352,10 +352,10 @@ pub fn search_checks(
         if board.make_move(*m).is_ok() {
             legal_moves += 1;
             let score = -search_checks(data, board, -beta, -alpha, ply + 1);
+            board.unmake_move();
             if data.over_limit() {
                 return TIMEOUT_SCORE;
             }
-            board.unmake_move();
 
             if score >= beta {
                 return score;
