@@ -33,7 +33,7 @@ impl Board {
 }
 
 pub fn input_loop() {
-    let mut board = Board::new();
+    let mut board = Board::from_fen(STARTING_FEN);
     let mut data = SearchData::default();
     let mut input_buffer = String::new();
 

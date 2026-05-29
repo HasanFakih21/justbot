@@ -88,6 +88,10 @@ impl SearchData {
     pub fn clear_node_count(&mut self) {
         self.nodes_searched = 0;
     }
+
+    pub fn reset_pv(&mut self) {
+        self.pv = vec![MoveList::new(); 256];
+    }
 }
 
 impl Default for SearchData {

@@ -28,6 +28,7 @@ impl Board {
 
 pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, i32)> {
     data.clear_node_count();
+    data.reset_pv();
     data.start_time();
     data.clear_table();
     let mut depth = 1;

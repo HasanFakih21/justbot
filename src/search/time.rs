@@ -21,6 +21,12 @@ pub struct TimeSettings {
     pub movetime: u128,
 }
 
+pub enum Limit {
+    Time(u128),
+    Exact(u128),
+    Depth(u128),
+}
+
 impl Default for TimeSettings {
     fn default() -> Self {
         Self { 
@@ -65,7 +71,10 @@ impl TimeManager {
             }
         }
 
-        let time_limit = (remaining_time / 20) + (increment / 2); //Simple time managment strategy: remaining time/20 + increment/2
+        let mut time_limit = (remaining_time / 20) + (increment / 2); //Simple time managment strategy: remaining time/20 + increment/2
+        if time_limit <= 500 {
+            time_limit = (remaining_time / 2) + increment;
+        }
         let over_limit = self.elapsed().as_millis() >= time_limit; 
 
         //For debugging//
