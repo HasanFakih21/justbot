@@ -34,7 +34,7 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
     data.clear_node_count();
     data.reset_pv();
     data.start_time();
-    //data.clear_table(); //Clears Transposition Table
+    //data.clear_table(); //Clears Transposition Table for some reason it plays better when clearing the TT before the start of every search prob cause it gets filled up with old + deep entries that never get replaced....
     let mut depth = 1;
 
     //Initialize with move from first depth
@@ -50,13 +50,14 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
 
     //All infos belonging to the pv should be sent together e.g. info depth 2 score cp 214 time 1242 nodes 2124 nps 34928 pv e2e4 e7e5 g1f3
     println!(
-        "info depth {} time {} score cp {} nodes {} nps {} pv {}",
+        "info depth {} time {} score cp {} nodes {} nps {} pv {} hashfull {}",
         depth - 1,
         data.time.elapsed().as_millis(),
         score,
         data.get_total_nodes_searched(),
         data.nodes_per_second(),
-        data.get_pv()
+        data.get_pv(),
+        data.tt.hashfull(),
     );
 
     //Iterative Deepening
@@ -88,13 +89,14 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
         alpha_window = score - (100 / 4);
         beta_window = score + (100 / 4);
         println!(
-            "info depth {} time {} score cp {} nodes {} nps {} pv {}",
+            "info depth {} time {} score cp {} nodes {} nps {} pv {} hashfull {}",
             depth - 1,
             data.time.elapsed().as_millis(),
             score,
             data.get_total_nodes_searched(),
             data.nodes_per_second(),
-            data.get_pv()
+            data.get_pv(),
+            data.tt.hashfull()
         );
     }
 
@@ -586,5 +588,40 @@ mod tests {
         board = Board::from_fen("6k1/5pp1/7p/8/5Pnq/2RQ3P/B5P1/6K1 b - - 2 37");
         println!("Hash 3: {}", board.board_state.hash);
         //Position hash: 3246015867840709621
+    }
+
+    #[test]
+    fn test_transposition_timeout() {
+        let mut data = SearchData::new();
+        data.set_playing_as(Side::Black);
+        data.get_time_settings().btime = 8080;
+        let mut board = Board::from_fen("6k1/2p5/4R1pp/1p1r4/pP1p4/P5PP/2P2P2/6K1 b - - 0 32");
+        let _ = search_runner(&mut board, &mut data);
+        println!();
+        // let best_move1 = search_runner(&mut board, &mut data);
+        // println!();
+        // let best_move2 = search_runner(&mut board, &mut data);
+        // println!();
+        // let best_move3 = search_runner(&mut board, &mut data);
+        // println!();
+        // let best_move4 = search_runner(&mut board, &mut data);
+        // println!();
+
+        assert!(!data.tt.0.iter().any(|i| {
+            if let Some(e) = i {
+                e.get_score() == TIMEOUT_SCORE
+            } else {
+                false
+            }
+        }));
+
+        //I want to count the number of entries in the table
+        let total_size = data.tt.0.len();
+        assert_eq!(total_size, ENTRIES);
+        let count = data.tt.0.iter().filter(|e|e.is_some()).count();
+
+        println!("Total Size: {total_size} Number of Entries: {count}");
+        println!("Hashfull: {}", (count as f32/total_size as f32) * 1000.0);
+        println!("{}", data.tt.hashfull());
     }
 }

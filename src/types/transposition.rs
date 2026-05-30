@@ -2,7 +2,7 @@ use crate::types::moves::Move;
 
 const TT_SIZE: usize = 64;
 const MEGABYTE: usize = 1024 * 1024;
-const ENTRIES: usize = TT_SIZE * MEGABYTE / std::mem::size_of::<Option<Entry>>();
+pub const ENTRIES: usize = TT_SIZE * MEGABYTE / std::mem::size_of::<Option<Entry>>();
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bound {
@@ -59,7 +59,7 @@ const fn index(hash: u64) -> usize {
 }
 
 #[derive(Debug, Clone)]
-pub struct TranspositionTable(Vec<Option<Entry>>);
+pub struct TranspositionTable(pub Vec<Option<Entry>>);
 
 impl TranspositionTable {
     pub fn new() -> Self {
@@ -75,13 +75,7 @@ impl TranspositionTable {
         depth: usize,
     ) {
         let entry = Entry::new(hash, best_move, score, bound, depth);
-        if let Some(e) = self.get_entry(hash) {
-            if depth > e.get_depth() {
-                self.0[index(hash)] = Some(entry);
-            }
-        } else {
-            self.0[index(hash)] = Some(entry);
-        }
+        self.0[index(hash)] = Some(entry); 
     }
 
     pub fn get_entry(&self, hash: u64) -> &Option<Entry> {
@@ -94,6 +88,10 @@ impl TranspositionTable {
 
     pub fn clear(&mut self) {
         self.0 = vec![None; ENTRIES];
+    }
+
+    pub fn hashfull(&self) -> usize {
+        self.0.iter().take(1000).filter(|e|e.is_some()).count()
     }
 }
 
