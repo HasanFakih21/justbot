@@ -1,3 +1,6 @@
+use std::array::from_fn;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use crate::search::time::{TimeManager, TimeSettings};
 use crate::types::{Move, MoveList, Side};
 
@@ -6,9 +9,9 @@ use crate::types::TranspositionTable;
 #[derive(Debug)]
 pub struct SearchData {
     playing_as: Side,
-    nodes_searched: usize,
     depth: usize,
-    pv: Vec<MoveList>,
+    pv: [MoveList; 256],
+    total_nodes: AtomicUsize,
 
     pub tt: TranspositionTable,
     pub time: TimeManager,
@@ -21,11 +24,11 @@ impl SearchData {
     pub fn new() -> Self {
         SearchData {
             playing_as: Side::White,
-            nodes_searched: 0,
             depth: 0,
-            pv: vec![MoveList::new(); 256],
+            pv: from_fn(|_| MoveList::new()),
             tt: TranspositionTable::new(),
-            time: TimeManager::new()
+            time: TimeManager::new(),
+            total_nodes: AtomicUsize::new(0),
         }
     }
 
@@ -34,15 +37,15 @@ impl SearchData {
     }
 
     pub fn get_total_nodes_searched(&self) -> usize {
-        self.nodes_searched
+        self.total_nodes.load(Ordering::Acquire)
     }
 
     pub fn get_pv(&self) -> &MoveList {
         &self.pv[0]
     }
 
-    pub fn add_nodes(&mut self, nodes: usize) {
-        self.nodes_searched += nodes;
+    pub fn add_nodes(&self, nodes: usize) {
+        self.total_nodes.fetch_add(nodes, Ordering::Relaxed);
     }
 
     pub fn increase_depth(&mut self) {
@@ -54,7 +57,7 @@ impl SearchData {
     }
 
     pub fn start_time(&mut self) {
-        self.time.reset_clock();
+        self.time.reset_clock(self.playing_as);
     }
 
     pub fn add_pv_move(&mut self, m: Move, ply: usize) {
@@ -78,19 +81,19 @@ impl SearchData {
     }
 
     pub fn over_limit(&self) -> bool {
-        self.time.over_limit(self.playing_as)
+        self.time.over_limit()
     }
 
     pub fn set_playing_as(&mut self, side: Side) {
         self.playing_as = side;
     }
 
-    pub fn clear_node_count(&mut self) {
-        self.nodes_searched = 0;
+    pub fn clear_node_count(&self) {
+        self.total_nodes.store(0, Ordering::Release);
     }
 
     pub fn reset_pv(&mut self) {
-        self.pv = vec![MoveList::new(); 256];
+        self.pv = from_fn(|_| MoveList::new());
     }
 }
 
