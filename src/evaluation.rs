@@ -204,7 +204,7 @@ impl Board {
     pub fn has_legal_move(&mut self) -> bool {
         let move_list = self.generate_moves(MoveGenKind::All);
         for m in move_list.iter() {
-            if self.make_move(*m).is_ok() {
+            if self.make_move(m.mv).is_ok() {
                 self.unmake_move();
                 return true;
             }

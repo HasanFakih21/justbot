@@ -30,7 +30,7 @@ pub enum Limit {
 
 impl Default for TimeSettings {
     fn default() -> Self {
-        Self { 
+        Self {
             wtime: 10000,
             btime: 10000,
             winc: 0,
@@ -46,14 +46,18 @@ impl Default for TimeSettings {
 
 impl TimeManager {
     pub fn new() -> TimeManager {
-        TimeManager { clock: Instant::now(), settings: TimeSettings::default(), limit: Limit::Time(1000) } 
+        TimeManager {
+            clock: Instant::now(),
+            settings: TimeSettings::default(),
+            limit: Limit::Time(1000),
+        }
     }
 
     pub fn reset_clock(&mut self, side: Side) {
         self.clock = Instant::now();
         let remaining_time;
         let increment;
-        
+
         match side {
             Side::White => {
                 remaining_time = self.settings.wtime;

@@ -5,13 +5,20 @@ use std::{
 
 use crate::types::{Piece, Square};
 
+#[derive(Debug, Clone, Copy)]
+pub struct MoveEntry {
+    pub mv: Move,
+    pub score: Option<i32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct MoveList {
-    inner: [MaybeUninit<Move>; 256],
+    inner: [MaybeUninit<MoveEntry>; 256],
     len: usize,
 }
 
-pub struct MoveListAddError;
+#[derive(Debug, Clone)]
+pub struct MoveListError;
 
 impl MoveList {
     pub fn new() -> Self {
@@ -22,22 +29,33 @@ impl MoveList {
     }
 
     pub fn push(&mut self, m: Move) {
-        self.inner[self.len].write(m);
+        self.inner[self.len].write(MoveEntry { mv: m, score: None });
         self.len += 1;
     }
 
-    pub fn replace(&mut self, m: Move, index: usize) -> Result<(), MoveListAddError> {
+    pub fn replace(&mut self, m: MoveEntry, index: usize) -> MoveEntry {
         if index < self.len {
+            let old_move = self.get(index);
             self.inner[index].write(m);
-            Ok(())
+            old_move
         } else {
-            Err(MoveListAddError)
+            panic!("Not a valid index!");
         }
     }
 
-    pub fn get(&self, index: usize) -> &Move {
+    //Instead of shifting entire list, pop the last element and place it at the removed spot
+    pub fn remove(&mut self, index: usize) -> Option<MoveEntry> {
+        if index == self.len - 1 {
+            return self.pop();
+        }
+
+        let last = self.pop().unwrap();
+        Some(self.replace(last, index))
+    }
+
+    pub fn get(&self, index: usize) -> MoveEntry {
         debug_assert!(index < self.len);
-        unsafe { self.inner[index].assume_init_ref() }
+        unsafe { self.inner[index].assume_init() }
     }
 
     pub fn push_front(&mut self, m: Move) {
@@ -47,14 +65,14 @@ impl MoveList {
             }
         }
         self.len += 1;
-        self.inner[0].write(m);
+        self.inner[0].write(MoveEntry { mv: m, score: None });
     }
 
     pub fn clear(&mut self) {
         self.len = 0;
     }
 
-    pub fn pop(&mut self) -> Option<Move> {
+    pub fn pop(&mut self) -> Option<MoveEntry> {
         if self.len == 0 {
             None
         } else {
@@ -72,11 +90,11 @@ impl MoveList {
         self.len == 0
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, Move> {
+    pub fn iter(&self) -> std::slice::Iter<'_, MoveEntry> {
         unsafe { self.inner[..self.len].assume_init_ref().iter() }
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Move> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, MoveEntry> {
         unsafe { self.inner[..self.len].assume_init_mut().iter_mut() }
     }
 }
@@ -102,7 +120,7 @@ impl Display for MoveList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut output = String::new();
         for m in self.iter() {
-            output = format!("{output}{m} ");
+            output = format!("{output}{} ", m.mv);
         }
 
         write!(f, "{output}")
@@ -118,15 +136,15 @@ impl Move {
         Move(from as u16 | ((to as u16) << 6) | ((kind as u16) << 12))
     }
 
-    pub fn get_from(&self) -> Square {
+    pub const fn get_from(&self) -> Square {
         Square::from((0x003F & self.0) as usize)
     }
 
-    pub fn get_to(&self) -> Square {
+    pub const fn get_to(&self) -> Square {
         Square::from(((0x0FC0 & self.0) >> 6) as usize)
     }
 
-    pub fn get_kind(&self) -> MoveKind {
+    pub const fn get_kind(&self) -> MoveKind {
         MoveKind::from(((0xF000 & self.0) >> 12) as u8)
     }
 
@@ -180,7 +198,7 @@ pub enum MoveKind {
 }
 
 impl MoveKind {
-    fn from(value: u8) -> Self {
+    pub const fn from(value: u8) -> Self {
         use MoveKind::*;
         match value {
             0b0000 => QuietMove,
@@ -265,7 +283,7 @@ pub mod tests {
         let m = Move::new(Square::A1, Square::A3, MoveKind::QuietMove);
         move_list.push_front(m);
         println!("{move_list}");
-        assert_eq!(*move_list.get(0), m);
+        assert_eq!(move_list.get(0).mv, m);
         assert_eq!(move_list.len(), 21);
     }
 }

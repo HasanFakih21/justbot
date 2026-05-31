@@ -96,7 +96,7 @@ impl Board {
         (self.board_state.board_pieces[(piece as usize) + (side as usize * 6)].0 & b) != 0
     }
 
-    pub fn get_piece_at_square(&self, square: Square) -> Option<(Side, Piece)> {
+    pub const fn get_piece_at_square(&self, square: Square) -> Option<(Side, Piece)> {
         self.board_state.pieces_on_squares[square as usize]
     }
 

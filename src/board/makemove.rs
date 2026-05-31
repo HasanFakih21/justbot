@@ -153,7 +153,10 @@ impl Board {
                     self.place_piece(side, Piece::Queen, to);
                 }
                 _ => {
-                    let (other_side, captured_piece) = self.get_piece_at_square(to).unwrap();
+                    let (other_side, captured_piece) =
+                        self.get_piece_at_square(to).unwrap_or_else(|| {
+                            panic!("{self}\nTried making move: {m}");
+                        });
                     self.remove_piece(other_side, captured_piece, to);
                     self.remove_piece(side, piece, from);
                     self.place_piece(side, piece, to);

@@ -63,7 +63,7 @@ impl SearchData {
         self.pv[ply].clear();
         self.pv[ply].push(m);
         for child_m in self.pv[ply + 1].clone().iter() {
-            self.pv[ply].push(*child_m);
+            self.pv[ply].push(child_m.mv);
         }
     }
 

@@ -75,7 +75,7 @@ impl TranspositionTable {
         depth: usize,
     ) {
         let entry = Entry::new(hash, best_move, score, bound, depth);
-        self.0[index(hash)] = Some(entry); 
+        self.0[index(hash)] = Some(entry);
     }
 
     pub fn get_entry(&self, hash: u64) -> &Option<Entry> {
@@ -91,7 +91,7 @@ impl TranspositionTable {
     }
 
     pub fn hashfull(&self) -> usize {
-        self.0.iter().take(1000).filter(|e|e.is_some()).count()
+        self.0.iter().take(1000).filter(|e| e.is_some()).count()
     }
 }
 

@@ -1,11 +1,12 @@
 use crate::board::Board;
+use crate::board::movegen::MoveGenKind;
 use crate::search::data::SearchData;
-use crate::search::movepicker::order_moves;
+use crate::search::movepicker::MovePicker;
 use crate::types::*;
 
 pub mod data;
-pub mod time;
 pub mod movepicker;
+pub mod time;
 
 pub const FAIL_INCREMENTS: [i32; 5] = [25, 50, 150, 300, INFINITY];
 
@@ -15,7 +16,7 @@ impl Board {
         let mut count = 0;
 
         if self.game_history.len() < half_moves {
-            return 0
+            return 0;
         }
 
         let last_halfmove_ply = self.game_history.len() - half_moves;
@@ -62,7 +63,11 @@ pub fn search_runner(board: &mut Board, data: &mut SearchData) -> Option<(Move, 
     loop {
         let deeper_move = search(data, depth, board, alpha_window, beta_window);
         if data.over_limit() {
-            println!("Searched for: {}ms\nTime Limit: {}ms", data.time.elapsed().as_millis(), data.time.get_limit());
+            println!(
+                "Searched for: {}ms\nTime Limit: {}ms",
+                data.time.elapsed().as_millis(),
+                data.time.get_limit()
+            );
             break;
         }
         let new_score = deeper_move.unwrap().1;
@@ -114,8 +119,11 @@ pub fn search(
     let ply = 0;
     data.clear_pv(0);
 
-    for m in order_moves(board, data).iter() {
-        if board.make_move(*m).is_ok() {
+    let mut move_picker = MovePicker::new(board, data, MoveGenKind::All);
+    move_picker.score_noisy_moves(board);
+
+    for m in move_picker {
+        if board.make_move(m).is_ok() {
             let score = -negamax(data, depth - 1, board, -beta, -alpha, ply + 1);
             board.unmake_move();
             if data.over_limit() {
@@ -124,8 +132,8 @@ pub fn search(
             //println!("{m}: {score}");
             if score >= best_score {
                 best_score = score;
-                best_move = Some((*m, score));
-                data.add_pv_move(*m, ply);
+                best_move = Some((m, score));
+                data.add_pv_move(m, ply);
             }
         }
     }
@@ -201,8 +209,11 @@ pub fn negamax(
     let mut best_move: Option<Move> = None;
     let mut bound = Bound::Upper; //Fail-high means score is atleast this good so lower-bound/Fail-low means the score is an upper bound
 
-    for m in order_moves(board, data).iter() {
-        if board.make_move(*m).is_ok() {
+    let mut move_picker = MovePicker::new(board, data, MoveGenKind::All);
+    move_picker.score_noisy_moves(board);
+
+    for m in move_picker {
+        if board.make_move(m).is_ok() {
             legal_moves += 1;
             let mut score;
 
@@ -225,12 +236,12 @@ pub fn negamax(
             if score > alpha {
                 bound = Bound::Exact;
                 alpha = score;
-                data.add_pv_move(*m, ply);
+                data.add_pv_move(m, ply);
             }
 
             if score > best_score {
                 best_score = score;
-                best_move = Some(*m);
+                best_move = Some(m);
             }
 
             if score >= beta {
@@ -305,8 +316,11 @@ pub fn quiesce(
         alpha = best_score;
     }
 
-    for m in order_moves(board, data).iter() {
-        if !m.get_kind().is_quiet() && board.make_move(*m).is_ok() {
+    let mut move_picker = MovePicker::new(board, data, MoveGenKind::Noisy);
+    move_picker.score_noisy_moves(board);
+
+    for m in move_picker {
+        if board.make_move(m).is_ok() {
             let score = -quiesce(data, board, -beta, -alpha, _ply + 1);
             board.unmake_move();
             if data.over_limit() {
@@ -356,8 +370,11 @@ pub fn search_checks(
         return quiesce(data, board, alpha, beta, ply);
     }
 
-    for m in order_moves(board, data).iter() {
-        if board.make_move(*m).is_ok() {
+    let mut move_picker = MovePicker::new(board, data, MoveGenKind::All);
+    move_picker.score_noisy_moves(board);
+
+    for m in move_picker {
+        if board.make_move(m).is_ok() {
             legal_moves += 1;
             let score = -search_checks(data, board, -beta, -alpha, ply + 1);
             board.unmake_move();
@@ -405,39 +422,25 @@ mod tests {
 
     #[test]
     fn test_order_moves() {
-        let mut board = Board::from_fen(STARTING_FEN);
-        let move_list = order_moves(&mut board, &mut SearchData::default());
-        println!("{board}");
-        println!("{move_list}");
-        println!();
-
-        let mut board =
+        let board =
             Board::from_fen("rnbqkb1r/pp3p2/4pnpp/1p1p2N1/1Q1P4/BP2P3/P1PN1PPP/R3K2R b KQkq - 0 1");
-        let move_list = order_moves(&mut board, &mut SearchData::default());
+        let mut move_picker = MovePicker::new(&board, &SearchData::default(), MoveGenKind::All);
+        move_picker.score_noisy_moves(&board);
+        let first_move = move_picker.next().unwrap();
 
-        println!("{board}");
-        println!("{move_list}");
-        println!();
-
-        let first_move = move_list.iter().next().unwrap();
         assert_eq!(
-            *first_move,
+            first_move,
             Move::new(Square::F8, Square::B4, MoveKind::Capture)
         );
 
-        let mut board =
+        let board =
             Board::from_fen("rnbq1rk1/pN1p1ppp/4n2b/2p1p3/N1BP3R/2P2Q2/PP3PPP/2B1K2R w K - 0 1");
-        let move_list = order_moves(&mut board, &mut SearchData::default());
+        let mut move_picker = MovePicker::new(&board, &SearchData::default(), MoveGenKind::All);
+        move_picker.score_noisy_moves(&board);
+        let first_move = move_picker.next().unwrap();
 
-        println!("{board}");
-        for m in move_list.iter() {
-            print!("{m}, ");
-        }
-        println!();
-
-        let first_move = move_list.iter().next().unwrap();
         assert_eq!(
-            *first_move,
+            first_move,
             Move::new(Square::B7, Square::D8, MoveKind::Capture)
         );
     }
@@ -567,10 +570,10 @@ mod tests {
         //I want to count the number of entries in the table
         let total_size = data.tt.0.len();
         assert_eq!(total_size, ENTRIES);
-        let count = data.tt.0.iter().filter(|e|e.is_some()).count();
+        let count = data.tt.0.iter().filter(|e| e.is_some()).count();
 
         println!("Total Size: {total_size} Number of Entries: {count}");
-        println!("Hashfull: {}", (count as f32/total_size as f32) * 1000.0);
+        println!("Hashfull: {}", (count as f32 / total_size as f32) * 1000.0);
         println!("{}", data.tt.hashfull());
     }
 }

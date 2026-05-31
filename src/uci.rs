@@ -23,9 +23,11 @@ impl Board {
 
         let move_list = self.generate_moves(MoveGenKind::All);
         if let Some(m) = move_list.iter().find(|e| {
-            e.get_from() == from && e.get_to() == to && e.get_promoted_piece() == promotion_piece
+            e.mv.get_from() == from
+                && e.mv.get_to() == to
+                && e.mv.get_promoted_piece() == promotion_piece
         }) {
-            Ok(*m)
+            Ok(m.mv)
         } else {
             Err("Invalid move string")
         }
@@ -57,7 +59,7 @@ pub fn input_loop() {
                 if let Some((m, _)) = go(args, &mut board, &mut data) {
                     println!("bestmove {m}");
                 }
-            },
+            }
             "quit" => break,
             "perft" => {
                 if let Ok(depth) = args.trim().parse::<usize>() {
@@ -118,49 +120,47 @@ pub fn position(args: &str, board: &mut Board) {
 pub fn go(args: &str, board: &mut Board, data: &mut SearchData) -> Option<(Move, i32)> {
     let (command, args) = args.split_once(" ").unwrap_or((args, ""));
     if args.is_empty() {
-        return search_runner(board, data)
+        return search_runner(board, data);
     }
 
     match command.trim() {
-        "depth" => { 
+        "depth" => {
             let (depth, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().depth = depth.trim().parse().unwrap_or(0);
-            go(args, board, data) 
+            go(args, board, data)
         }
         "wtime" => {
             //Example: go wtime 900000 btime 900000 winc 0 binc 0
             let (wtime, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().wtime = wtime.trim().parse().unwrap_or(500);
-            go(args, board, data) 
+            go(args, board, data)
         }
         "btime" => {
             let (btime, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().btime = btime.trim().parse().unwrap_or(500);
-            go(args, board, data) 
+            go(args, board, data)
         }
         "winc" => {
             let (winc, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().winc = winc.trim().parse().unwrap_or(0);
-            go(args, board, data) 
+            go(args, board, data)
         }
         "binc" => {
             let (binc, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().binc = binc.trim().parse().unwrap_or(0);
-            go(args, board, data) 
+            go(args, board, data)
         }
         "movestogo" => {
             let (movestogo, args) = args.split_once(" ").unwrap_or((args, ""));
             data.get_time_settings().movestogo = movestogo.trim().parse().unwrap_or(0);
-            go(args, board, data) 
-        }
-        "movetime" => {  
-            let (movetime, args) = args.split_once(" ").unwrap_or((args, ""));
-            data.get_time_settings().movetime = movetime.trim().parse().unwrap_or(0);
-            go(args, board, data) 
-        }
-        _ => {
             go(args, board, data)
         }
+        "movetime" => {
+            let (movetime, args) = args.split_once(" ").unwrap_or((args, ""));
+            data.get_time_settings().movetime = movetime.trim().parse().unwrap_or(0);
+            go(args, board, data)
+        }
+        _ => go(args, board, data),
     }
 }
 
@@ -174,7 +174,7 @@ pub fn uci() {
 pub mod tests {
     use std::{sync::Arc, thread};
 
-use super::*;
+    use super::*;
     use crate::types::constants::STARTING_FEN;
 
     #[test]
@@ -204,12 +204,16 @@ use super::*;
             &mut board,
             &mut data,
         );
-        println!("{:?}\nBestmove: {}", data.get_time_settings(), bm.unwrap().0);
+        println!(
+            "{:?}\nBestmove: {}",
+            data.get_time_settings(),
+            bm.unwrap().0
+        );
     }
 
     #[test]
     fn test_thread() {
-        let data = Arc::new(SearchData::default()); 
+        let data = Arc::new(SearchData::default());
         let mut handles = vec![];
         {
             let data = Arc::clone(&data);
@@ -217,7 +221,7 @@ use super::*;
                 data.add_nodes(1);
             });
             handles.push(handle);
-        } 
+        }
 
         for handle in handles {
             handle.join().unwrap();

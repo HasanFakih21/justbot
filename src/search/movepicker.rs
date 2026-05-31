@@ -1,52 +1,112 @@
-use std::cmp::Reverse;
+use crate::{
+    board::{Board, movegen::MoveGenKind},
+    search::data::SearchData,
+    types::{Move, MoveKind, MoveList, Square},
+};
 
-use crate::{board::{Board, movegen::MoveGenKind}, search::data::SearchData, types::{Move, MoveKind, MoveList, Square}};
+#[derive(Debug)]
+pub struct MovePicker {
+    moves: MoveList,
+    tt_move: Option<Move>,
+}
 
-pub fn order_moves(board: &mut Board, data: &mut SearchData) -> MoveList {
-    //We want to sort the moves based on most valuable victim / least valuable attacker
-    //Sort captures based on (attacked piece value - attacking piece value)
-    let mut full_list = MoveList::new();
-    let mut captures: MoveList = board.generate_moves(MoveGenKind::Captures);
-    let mut best_move: Option<Move> = None;
-
-    //Want to add the best move from the transposition table if it exists to the beginning of the list
-    if let Some(e) = data.tt.get_entry(board.board_state.hash)
-        && board.board_state.hash == e.get_key()
-    {
-        let bm = e.get_best_move();
-        full_list.push(bm);
-        best_move = Some(bm);
+impl MovePicker {
+    pub fn new(board: &Board, data: &SearchData, kind: MoveGenKind) -> MovePicker {
+        Self {
+            moves: board.generate_moves(kind),
+            tt_move: if let Some(e) = data.tt.get_entry(board.board_state.hash)
+                && board.board_state.hash == e.get_key()
+            {
+                Some(e.get_best_move())
+            } else {
+                None
+            },
+        } 
     }
 
-    captures.iter_mut().into_slice().sort_by_key(|m| {
-        let attacker = board.get_piece_at_square(m.get_from()).unwrap().1;
-        let victim = match m.get_kind() {
-            MoveKind::EnPassant => {
-                board
-                    .get_piece_at_square(Square::from(m.get_to() as usize ^ 8))
-                    .unwrap()
-                    .1
+    pub fn score_noisy_moves(&mut self, board: &Board) {
+        self.remove_tt_move();
+        for entry in self.moves.iter_mut() {
+            let mv = entry.mv;
+            if mv.get_kind().is_capture() {
+                entry.score = Some(score_attack_move(mv, board));
+            } else if mv.get_kind().is_queen_promotion() {
+                entry.score = Some(500);
             }
-            _ => board.get_piece_at_square(m.get_to()).unwrap().1,
-        };
-        Reverse(victim.value() - attacker.value())
-    });
-
-    let quiet = board.generate_moves(MoveGenKind::Quiet);
-    let pawn_promos = board.generate_moves(MoveGenKind::NonCapturePromotions);
-
-    for m in captures
-        .iter()
-        .chain(pawn_promos.iter())
-        .chain(quiet.iter())
-    {
-        if let Some(bm) = best_move
-            && *m == bm
-        {
-            continue;
         }
-        full_list.push(*m);
     }
 
-    full_list
+    pub fn best_move(&mut self) -> Move {
+        let mut best_index = 0;
+        let mut best_score = i32::MIN;
+
+        for (index, entry) in self.moves.iter().enumerate() {
+            let entry_score = entry.score.unwrap_or(i32::MIN); 
+            if entry_score >= best_score {
+                best_score = entry_score;
+                best_index = index;
+            }
+        }
+
+        self.moves.remove(best_index).unwrap().mv
+    }
+
+    pub fn remove_tt_move(&mut self) {
+        if let Some(tt_mv) = self.tt_move
+            && let Some(index) = self.moves.iter().position(|e| tt_mv == e.mv)
+        {
+            self.moves.remove(index);
+        }
+    }
+}
+
+impl Iterator for MovePicker {
+    type Item = Move;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(tt_mv) = self.tt_move {
+            self.tt_move = None;
+            Some(tt_mv)
+        } else if !self.moves.is_empty() {
+            Some(self.best_move())
+        } else {
+            None
+        }
+    }
+}
+
+pub const fn score_attack_move(mv: Move, board: &Board) -> i32 {
+    let attacker = board.get_piece_at_square(mv.get_from()).unwrap().1;
+    let victim = match mv.get_kind() {
+        MoveKind::EnPassant => {
+            board
+                .get_piece_at_square(Square::from(mv.get_to() as usize ^ 8))
+                .unwrap()
+                .1
+        }
+        _ => board.get_piece_at_square(mv.get_to()).unwrap().1,
+    };
+
+    victim.value() - attacker.value()
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::{
+        board::{Board, movegen::MoveGenKind},
+        search::{data::SearchData, movepicker::MovePicker},
+    };
+
+    #[test]
+    fn test_move_picker() {
+        let board =
+            Board::from_fen("rnbqkb1r/pp3p2/4pnpp/1p1p2N1/1Q1P4/BP2P3/P1PN1PPP/R3K2R b KQkq - 0 1");
+        let mut move_picker = MovePicker::new(&board, &SearchData::default(), MoveGenKind::All);
+        println!("{}", move_picker.moves);
+        //println!("{:?}", move_picker);
+        move_picker.score_noisy_moves(&board);
+        for m in move_picker {
+            println!("{m}");
+        }
+    }
 }
